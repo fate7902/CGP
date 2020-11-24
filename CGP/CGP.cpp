@@ -31,9 +31,9 @@ GLvoid Timer(int value);
 
 // 여기에 도형 좌표 해주세요
 GLfloat line[6][3] = {
-	{-5.0,0.0,0.0},{5.0,0.0,0.0},
-	{0.0,5.0,0.0},{0.0,-5.0,0.0},
-	{0.0,0.0,-5.0},{0.0,0.0,5.0}
+	{-65.0f,0.0f,0.0f},{65.0f,0.0f,0.0f},
+	{0.0f,65.0f,0.0f},{0.0f,-65.0f,0.0f},
+	{0.0f,0.0f,-65.0f},{0.0f,0.0f,65.0f}
 };
 GLfloat line_colors[6][3] = {
 	{1.0,0.0,0.0},{1.0,0.0,0.0},
@@ -41,42 +41,42 @@ GLfloat line_colors[6][3] = {
 	{1.0,0.0,0.0},{1.0,0.0,0.0}
 };
 GLfloat cube[36][3] = {
-	{-1.0f,-1.0f,-1.0f}, // triangle 1 : begin
-	{-1.0f,-1.0f, 1.0f },
-	{-1.0f, 1.0f, 1.0f}, // triangle 1 : end
-	{1.0f, 1.0f,-1.0f}, // triangle 2 : begin
-	{-1.0f,-1.0f,-1.0f},
-	{ -1.0f, 1.0f,-1.0f}, // triangle 2 : end
-	{ 1.0f,-1.0f, 1.0f},
-	{-1.0f,-1.0f,-1.0f},
-	{ 1.0f,-1.0f,-1.0f},
-	{ 1.0f, 1.0f,-1.0f},
-	{ 1.0f,-1.0f,-1.0f},
-	{ -1.0f,-1.0f,-1.0f},
-	{ -1.0f,-1.0f,-1.0f},
-	{-1.0f, 1.0f, 1.0f},
-	{-1.0f, 1.0f,-1.0f},
-	{ 1.0f,-1.0f, 1.0f},
-	{ -1.0f,-1.0f, 1.0f},
-	{-1.0f,-1.0f,-1.0f},
-	{-1.0f, 1.0f, 1.0f},
-	{ -1.0f,-1.0f, 1.0f},
-	{  1.0f,-1.0f, 1.0f},
+	{-0.0f,-0.0f,-0.0f}, // triangle 1 : begin
+	{-0.0f,-0.0f, 1.0f },
+	{-0.0f, 1.0f, 1.0f}, // triangle 1 : end
+	{1.0f, 1.0f,-0.0f}, // triangle 2 : begin
+	{-0.0f,-0.0f,-0.0f},
+	{ -0.0f, 1.0f,-0.0f}, // triangle 2 : end
+	{ 1.0f,-0.0f, 1.0f},
+	{-0.0f,-1.0f,-0.0f},
+	{ 1.0f,-0.0f,-0.0f},
+	{ 1.0f, 1.0f,-0.0f},
+	{ 1.0f,-0.0f,-0.0f},
+	{ -0.0f,-0.0f,-0.0f},
+	{ -0.0f,-0.0f,-0.0f},
+	{-0.0f, 1.0f, 1.0f},
+	{-0.0f, 1.0f,-0.0f},
+	{ 1.0f,-0.0f, 1.0f},
+	{ -0.0f,-0.0f, 1.0f},
+	{-0.0f,-0.0f,-0.0f},
+	{-0.0f, 1.0f, 1.0f},
+	{ -0.0f,-0.0f, 1.0f},
+	{  1.0f,-0.0f, 1.0f},
 	{ 1.0f, 1.0f, 1.0f},
-	{ 1.0f,-1.0f,-1.0f},
-	{ 1.0f, 1.0f,-1.0f},
-	{ 1.0f,-1.0f,-1.0f},
+	{ 1.0f,-0.0f,-0.0f},
+	{ 1.0f, 1.0f,-0.0f},
+	{ 1.0f,-0.0f,-0.0f},
 	{1.0f, 1.0f, 1.0f},
-	{1.0f,-1.0f, 1.0f},
+	{1.0f,-0.0f, 1.0f},
 	{1.0f, 1.0f, 1.0f},
-	{ 1.0f, 1.0f,-1.0f},
-	{ -1.0f, 1.0f,-1.0f},
+	{ 1.0f, 1.0f,-0.0f},
+	{ -0.0f, 1.0f,-0.0f},
 	{ 1.0f, 1.0f, 1.0f},
-	{ -1.0f, 1.0f,-1.0f},
-	{ -1.0f, 1.0f, 1.0f},
+	{ -0.0f, 1.0f,-0.0f},
+	{ -0.0f, 1.0f, 1.0f},
 	{1.0f, 1.0f, 1.0f},
-	{ -1.0f, 1.0f, 1.0f},
-	{ 1.0f,-1.0f, 1.0f}
+	{ -0.0f, 1.0f, 1.0f},
+	{ 1.0f,-0.0f, 1.0f}
 };
 
 GLfloat cubecolors[36][3]{ 0 };
@@ -191,18 +191,25 @@ void InitShader()
 
 GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 {
-	rColor = gColor = bColor = 1.f;
+	rColor = gColor = bColor = 0.0f;
 	//--- 변경된 배경색 설정
-	glClearColor(rColor, gColor, bColor, 1.f);
+	glClearColor(rColor, gColor, bColor, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
 	glUseProgram(s_program);
 
 	// 카메라 위치
-	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-	glm::vec3 cameraDirection = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::vec3 cameraPos = glm::vec3(0.0f, 50.0f, 0.0f);
+
+	glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라가 바라보는 곳
+	glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget); //--- 카메라 방향 벡터
+
+	glm::vec3 up = glm::vec3(0.0f, 0.0f,-1.0f);
+	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+
+	glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+
 	glm::mat4 view = glm::mat4(1.0f);
 	view = glm::lookAt(cameraPos, cameraDirection, cameraUp);
 	unsigned int viewLocation = glGetUniformLocation(s_program, "viewTransform");
@@ -210,15 +217,15 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 
 	// 원근 투영
 	unsigned int projecLocation = glGetUniformLocation(s_program, "projectionTransform");
-	glm::mat4 pTransform = glm::mat4(1.f);
-	pTransform = glm::perspective(glm::radians(45.0f), (float)g_window_w / (float)g_window_h, 0.1f, 50.f);
-	pTransform = glm::translate(pTransform, glm::vec3(0.f, 0.f, -5.f));
-	pTransform = glm::rotate(pTransform, glm::radians(45.f), glm::vec3(1.f, 0.f, 0.f));
-	pTransform = glm::rotate(pTransform, glm::radians(45.f), glm::vec3(0.f, 1.f, 0.f));
+	glm::mat4 pTransform = glm::mat4(1.0f);
+	pTransform = glm::perspective(glm::radians(120.0f), (float)g_window_w / (float)g_window_h, 0.1f, 50.0f);
+	//pTransform = glm::translate(pTransform, glm::vec3(0.0f, 0.0f, -10.0f));
+	//pTransform = glm::rotate(pTransform, glm::radians(45.f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//pTransform = glm::rotate(pTransform, glm::radians(45.f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glUniformMatrix4fv(projecLocation, 1, GL_FALSE, &pTransform[0][0]);
 
 	// 축 그리기
-	glm::mat4 TT = glm::mat4(1.f);
+	glm::mat4 TT = glm::mat4(1.0f);
 	unsigned int modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
 	glBindVertexArray(vao[0]);
@@ -226,35 +233,33 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 
 	//큐브 그리기
 	glm::mat4 CT = glm::mat4(1.0f);
-	glm::mat4 MX11 = glm::mat4(1.0f);
+	glm::mat4 MX = glm::mat4(1.0f);
 	glm::mat4 RY = glm::mat4(1.0f);
-	glm::mat4 RTfirst = glm::mat4(1.0f);
-	CT = glm::scale(CT, glm::vec3(6.5, 0.1, 0.1));
-	MX11 = glm::translate(MX11, glm::vec3(0.5f, 0.0f, 0.0f)); //--- model 행렬에 이동 변환 적용
-	RY = glm::rotate(RY, glm::radians(rycount), glm::vec3(0.0, 1.0, 0.0));
-	RTfirst = glm::rotate(RTfirst, glm::radians(30.0f), glm::vec3(1.0, 0.0, 0.0));
-	CT = MX11 * RY * CT;
+	glm::mat4 CS = glm::mat4(1.0f);
+	CS = glm::scale(CS, glm::vec3(32.0f, 0.0f, 1.0));
+	MX = glm::translate(MX, glm::vec3(0.0f, 0.0f, 5.0f)); //--- model 행렬에 이동 변환 적용
+	RY = glm::rotate(RY, glm::radians(0.0f), glm::vec3(0.0, 1.0, 0.0));
+	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT)); //--- modelTransform 변수에 변환 값 적용하기
 	glBindVertexArray(vao[1]);
 	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
 
-		//큐브 그리기
 	glm::mat4 CT2 = glm::mat4(1.0f);
-	glm::mat4 MX22 = glm::mat4(1.0f);
+	glm::mat4 MX2 = glm::mat4(1.0f);
 	glm::mat4 RY2 = glm::mat4(1.0f);
-	glm::mat4 RTfirst2 = glm::mat4(1.0f);
-	CT2 = glm::scale(CT2, glm::vec3(6.5, 0.1, 0.1));
-	MX22 = glm::translate(MX22, glm::vec3(0.5f, 0.5f, 0.0f)); //--- model 행렬에 이동 변환 적용
-	RY2 = glm::rotate(RY2, glm::radians(rycount), glm::vec3(0.0, 1.0, 0.0));
-	RTfirst2 = glm::rotate(RTfirst2, glm::radians(30.0f), glm::vec3(1.0, 0.0, 0.0));
-	CT2 = MX22 * RY2 * CT2;
+	glm::mat4 CS2 = glm::mat4(1.0f);
+	CS2 = glm::scale(CS2, glm::vec3(1.0f, 0.0f, 16.0f));
+	MX2 = glm::translate(MX2, glm::vec3(0.0f, 0.0f, 10.0f)); //--- model 행렬에 이동 변환 적용
+	RY2 = glm::rotate(RY2, glm::radians(0.0f), glm::vec3(0.0, 1.0, 0.0));
+	CT2 = MX2 * CS2;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT2)); //--- modelTransform 변수에 변환 값 적용하기
 	glBindVertexArray(vao[1]);
 	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+
 	glutSwapBuffers(); // 화면에 출력하기
 }
 
@@ -286,8 +291,8 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 {
 	srand((unsigned int)time(NULL));
 	// 화면 사이즈 조절
-	width = 500;
-	height = 500;
+	width = 1000;
+	height = 1000;
 
 	for (int i = 0; i < 36; ++i) {
 		cubecolors[i][0] = 0.1f;
@@ -312,7 +317,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	glutDisplayFunc(drawScene); // 출력 함수의 지정	
 	glutReshapeFunc(Reshape); // 다시 그리기 함수 지정
 	glutKeyboardFunc(KeyBoard);
-	glutTimerFunc(50, Timer, 1);
+	//glutTimerFunc(50, Timer, 1);
 	glutMainLoop(); // 이벤트 처리 시작
 }
 
