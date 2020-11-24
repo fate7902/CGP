@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #pragma comment(lib,"glew32")
 #pragma comment(lib,"freeglut")
+
 // TEST YOOHOO
 #include <iostream>
 #include <gl/glew.h>
@@ -39,6 +40,48 @@ GLfloat line_colors[6][3] = {
 	{1.0,0.0,0.0},{1.0,0.0,0.0},
 	{1.0,0.0,0.0},{1.0,0.0,0.0}
 };
+GLfloat cube[36][3] = {
+	{-1.0f,-1.0f,-1.0f}, // triangle 1 : begin
+	{-1.0f,-1.0f, 1.0f },
+	{-1.0f, 1.0f, 1.0f}, // triangle 1 : end
+	{1.0f, 1.0f,-1.0f}, // triangle 2 : begin
+	{-1.0f,-1.0f,-1.0f},
+	{ -1.0f, 1.0f,-1.0f}, // triangle 2 : end
+	{ 1.0f,-1.0f, 1.0f},
+	{-1.0f,-1.0f,-1.0f},
+	{ 1.0f,-1.0f,-1.0f},
+	{ 1.0f, 1.0f,-1.0f},
+	{ 1.0f,-1.0f,-1.0f},
+	{ -1.0f,-1.0f,-1.0f},
+	{ -1.0f,-1.0f,-1.0f},
+	{-1.0f, 1.0f, 1.0f},
+	{-1.0f, 1.0f,-1.0f},
+	{ 1.0f,-1.0f, 1.0f},
+	{ -1.0f,-1.0f, 1.0f},
+	{-1.0f,-1.0f,-1.0f},
+	{-1.0f, 1.0f, 1.0f},
+	{ -1.0f,-1.0f, 1.0f},
+	{  1.0f,-1.0f, 1.0f},
+	{ 1.0f, 1.0f, 1.0f},
+	{ 1.0f,-1.0f,-1.0f},
+	{ 1.0f, 1.0f,-1.0f},
+	{ 1.0f,-1.0f,-1.0f},
+	{1.0f, 1.0f, 1.0f},
+	{1.0f,-1.0f, 1.0f},
+	{1.0f, 1.0f, 1.0f},
+	{ 1.0f, 1.0f,-1.0f},
+	{ -1.0f, 1.0f,-1.0f},
+	{ 1.0f, 1.0f, 1.0f},
+	{ -1.0f, 1.0f,-1.0f},
+	{ -1.0f, 1.0f, 1.0f},
+	{1.0f, 1.0f, 1.0f},
+	{ -1.0f, 1.0f, 1.0f},
+	{ 1.0f,-1.0f, 1.0f}
+};
+
+GLfloat cubecolors[36][3]{ 0 };
+
+GLfloat rycount = 30.0f;
 
 char* filetobuf(const char* file) {
 
@@ -117,6 +160,17 @@ void InitBuffer()
 	glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GLfloat), line_colors, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
+
+	glBindVertexArray(vao[1]);
+	glGenBuffers(2, vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), cube, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), cubecolors, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
 }
 
 void InitShader()
@@ -146,15 +200,19 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glUseProgram(s_program);
 
 	// 카메라 위치
+	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+	glm::vec3 cameraDirection = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::mat4 view = glm::mat4(1.0f);
+	view = glm::lookAt(cameraPos, cameraDirection, cameraUp);
 	unsigned int viewLocation = glGetUniformLocation(s_program, "viewTransform");
-	glm::mat4 view = glm::mat4(1.f);
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 
 	// 원근 투영
-	unsigned int projecLocation = glGetUniformLocation(s_program, "projection");
+	unsigned int projecLocation = glGetUniformLocation(s_program, "projectionTransform");
 	glm::mat4 pTransform = glm::mat4(1.f);
 	pTransform = glm::perspective(glm::radians(45.0f), (float)g_window_w / (float)g_window_h, 0.1f, 50.f);
-	pTransform = glm::translate(pTransform, glm::vec3(0.f, 0.f, -5.f));	
+	pTransform = glm::translate(pTransform, glm::vec3(0.f, 0.f, -5.f));
 	pTransform = glm::rotate(pTransform, glm::radians(45.f), glm::vec3(1.f, 0.f, 0.f));
 	pTransform = glm::rotate(pTransform, glm::radians(45.f), glm::vec3(0.f, 1.f, 0.f));
 	glUniformMatrix4fv(projecLocation, 1, GL_FALSE, &pTransform[0][0]);
@@ -166,6 +224,37 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glBindVertexArray(vao[0]);
 	glDrawArrays(GL_LINES, 0, 6);
 
+	//큐브 그리기
+	glm::mat4 CT = glm::mat4(1.0f);
+	glm::mat4 MX11 = glm::mat4(1.0f);
+	glm::mat4 RY = glm::mat4(1.0f);
+	glm::mat4 RTfirst = glm::mat4(1.0f);
+	CT = glm::scale(CT, glm::vec3(6.5, 0.1, 0.1));
+	MX11 = glm::translate(MX11, glm::vec3(0.5f, 0.0f, 0.0f)); //--- model 행렬에 이동 변환 적용
+	RY = glm::rotate(RY, glm::radians(rycount), glm::vec3(0.0, 1.0, 0.0));
+	RTfirst = glm::rotate(RTfirst, glm::radians(30.0f), glm::vec3(1.0, 0.0, 0.0));
+	CT = MX11 * RY * CT;
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");
+	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT)); //--- modelTransform 변수에 변환 값 적용하기
+	glBindVertexArray(vao[1]);
+	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+
+		//큐브 그리기
+	glm::mat4 CT2 = glm::mat4(1.0f);
+	glm::mat4 MX22 = glm::mat4(1.0f);
+	glm::mat4 RY2 = glm::mat4(1.0f);
+	glm::mat4 RTfirst2 = glm::mat4(1.0f);
+	CT2 = glm::scale(CT2, glm::vec3(6.5, 0.1, 0.1));
+	MX22 = glm::translate(MX22, glm::vec3(0.5f, 0.5f, 0.0f)); //--- model 행렬에 이동 변환 적용
+	RY2 = glm::rotate(RY2, glm::radians(rycount), glm::vec3(0.0, 1.0, 0.0));
+	RTfirst2 = glm::rotate(RTfirst2, glm::radians(30.0f), glm::vec3(1.0, 0.0, 0.0));
+	CT2 = MX22 * RY2 * CT2;
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");
+	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT2)); //--- modelTransform 변수에 변환 값 적용하기
+	glBindVertexArray(vao[1]);
+	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
 	glutSwapBuffers(); // 화면에 출력하기
 }
 
@@ -188,6 +277,7 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 GLvoid Timer(int value) {
 	InitShader();
 	InitBuffer();
+	rycount += 2.0f;
 	glutPostRedisplay();
 	glutTimerFunc(50, Timer, 1);
 }
@@ -198,6 +288,12 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	// 화면 사이즈 조절
 	width = 500;
 	height = 500;
+
+	for (int i = 0; i < 36; ++i) {
+		cubecolors[i][0] = 0.1f;
+		cubecolors[i][1] = 0.8f;
+		cubecolors[i][2] = 0.8f;
+	}
 
 	//--- 윈도우 생성하기
 	glutInit(&argc, argv); // glut 초기화
