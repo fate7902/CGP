@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+// 정의는 이곳에 해주세요
+#define MAX_WALL 54
+
 GLuint vertexShader;
 GLuint fragmentShader;
 GLuint ShaderProgramID;
@@ -48,8 +51,11 @@ struct Collision collision[54] =
 };
 
 // 추가 변수 여기에 선언해주세요
-GLfloat dx = 0.f, dy = 0.f, dz = 0.f;
+GLfloat dx = 0.f, dy = 0.f, dz = 0.f; // 이동값
+GLfloat ds = 0.01f; // 이동크기값
+GLfloat posX = 0.f, posY = 2.f, posZ = 0.f; // 초기 생성 위치 값
 GLboolean camera_set = GL_FALSE;
+GLuint state = 0; // 0 - 정지 1 - 앞 2 - 뒤 3 - 좌 4 - 우
 
 // 추가 함수 여기에 선언해주세요
 GLvoid drawScene(GLvoid);
@@ -228,7 +234,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
 	glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
 	// 주인공
-	glm::vec3 cameraPos2 = glm::vec3(0.0f, 2.0f, 0.0f);
+	glm::vec3 cameraPos2 = glm::vec3(posX, posY, posZ);
 	glm::vec3 cameraTarget2 = glm::vec3(50.0f, 2.0f, 0.0f);
 	glm::vec3 cameraUp2 = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -951,16 +957,16 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 	switch (key)
 	{
 	case 'w' | 'W':
-		dz += 1.f;
+		state = 1;
 		break;
 	case 'a' | 'A':
-		dx += 1.f;
+		state = 3;
 		break;
 	case 's' | 'S':
-		dz -= 1.f;
+		state = 2;
 		break;
 	case 'd' | 'D':
-		dx -= 1.f;
+		state = 4;
 		break;
 	case 't' | 'T': // 카메라 시점 바꾸기
 		if (!camera_set) 
@@ -982,7 +988,50 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
+GLvoid KeyUp(unsigned char key, int x, int y) {
+	switch (key)
+	{
+	case 'w' | 'W':
+	case 'a' | 'A':
+	case 's' | 'S':
+	case 'd' | 'D' :
+		state = 0;
+		break;
+	default:
+		break;
+	}
+	glutPostRedisplay();
+}
+
 GLvoid Timer(int value) {
+	// 플레이어 이동
+	if (state != 0) 
+	{
+		for (int i = 0; i < MAX_WALL; i++) 
+		{
+			switch (state)
+			{
+			case 1: // 앞
+				if (!(posZ + dz + ds > collision[i].bottom_z && posZ + dz + ds < collision[i].top_z &&
+					posX + dx > collision[i].left_x && posX + dx < collision[i].right_x))
+				{
+					dz += ds;
+				}				
+				break;
+			case 2: // 뒤
+				dz -= ds;
+				break;
+			case 3: // 좌
+				dx += ds;
+				break;
+			case 4: // 우
+				dx -= ds;
+				break;
+			default:
+				break;
+			}
+		}
+	}
 	glutPostRedisplay();
 	glutTimerFunc(50, Timer, 1);
 }
@@ -1011,7 +1060,8 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	glutDisplayFunc(drawScene); // 출력 함수의 지정	
 	glutReshapeFunc(Reshape); // 다시 그리기 함수 지정
 	glutKeyboardFunc(KeyBoard);
-	//glutTimerFunc(50, Timer, 1);
+	glutKeyboardUpFunc(KeyUp);
+	glutTimerFunc(50, Timer, 1);
 	glutMainLoop(); // 이벤트 처리 시작
 }
 
