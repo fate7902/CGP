@@ -52,9 +52,12 @@ struct Collision collision[54] =
 
 // 추가 변수 여기에 선언해주세요
 GLfloat dx = 0.f, dy = 0.f, dz = 0.f; // 이동값
-GLfloat ds = 0.01f; // 이동크기값
+GLfloat ds = 0.1f; // 이동크기값
 GLfloat posX = 0.f, posY = 2.f, posZ = 0.f; // 초기 생성 위치 값
+GLfloat realX, realY, realZ; // 실제 좌표 값
+GLfloat realbody = 0.3f; // 카메라가 주인공이기에 가상의 두께 값
 GLboolean camera_set = GL_FALSE;
+GLboolean col = GL_FALSE; // 충돌 여부판단
 GLuint state = 0; // 0 - 정지 1 - 앞 2 - 뒤 3 - 좌 4 - 우
 
 // 추가 함수 여기에 선언해주세요
@@ -1007,29 +1010,105 @@ GLvoid Timer(int value) {
 	// 플레이어 이동
 	if (state != 0) 
 	{
-		for (int i = 0; i < MAX_WALL; i++) 
+		switch (state)
 		{
-			switch (state)
+		case 1: // 앞
+			for (int i = 0; i < MAX_WALL; i++)
 			{
-			case 1: // 앞
-				if (!(posZ + dz + ds > collision[i].bottom_z && posZ + dz + ds < collision[i].top_z &&
-					posX + dx > collision[i].left_x && posX + dx < collision[i].right_x))
+				if (realZ + ds > collision[i].bottom_z - realbody && realZ + ds < collision[i].top_z + realbody &&
+					realX > collision[i].left_x - realbody && realX < collision[i].right_x + realbody)
 				{
-					dz += ds;
-				}				
-				break;
-			case 2: // 뒤
-				dz -= ds;
-				break;
-			case 3: // 좌
-				dx += ds;
-				break;
-			case 4: // 우
-				dx -= ds;
-				break;
-			default:
-				break;
+					col = GL_TRUE;
+				}
+				if (col)
+				{
+					i = MAX_WALL;
+				}
 			}
+			if (!col)
+			{
+				dz += ds;
+				realZ += ds;
+			}
+			else 
+			{
+				col = GL_FALSE;
+			}
+			break;
+		case 2: // 뒤
+			for (int i = 0; i < MAX_WALL; i++)
+			{
+				if (realZ - ds > collision[i].bottom_z - realbody && realZ - ds < collision[i].top_z + realbody &&
+					realX > collision[i].left_x - realbody && realX < collision[i].right_x + realbody)
+				{
+					col = GL_TRUE;
+				}
+				if (col)
+				{
+					i = MAX_WALL;
+				}
+			}
+			if (!col)
+			{
+				dz -= ds;
+				realZ -= ds;
+				col = GL_FALSE;
+			}
+			else
+			{
+				col = GL_FALSE;
+			}
+			break;
+		case 3: // 좌
+			for (int i = 0; i < MAX_WALL; i++)
+			{
+				if (realZ > collision[i].bottom_z - realbody && realZ < collision[i].top_z + realbody &&
+					realX - ds> collision[i].left_x - realbody && realX - ds < collision[i].right_x + realbody)
+				{
+					col = GL_TRUE;
+				}
+				if (col)
+				{
+					i = MAX_WALL;
+				}
+			}
+			if (!col)
+			{
+				dx += ds;
+				realX -= ds;
+				col = GL_FALSE;
+			}
+			else
+			{
+				col = GL_FALSE;
+			}
+			break;
+		case 4: // 우
+			for (int i = 0; i < MAX_WALL; i++)
+			{
+				if (realZ > collision[i].bottom_z - realbody && realZ < collision[i].top_z + realbody &&
+					realX + ds> collision[i].left_x - realbody && realX + ds < collision[i].right_x + realbody)
+				{
+					col = GL_TRUE;
+				}
+				if (col)
+				{
+					i = MAX_WALL;
+				}
+			}
+			if (!col)
+			{
+				dx -= ds;
+				realX += ds;
+				col = GL_FALSE;
+			}
+			else
+			{
+				col = GL_FALSE;
+			}
+			break;
+		default:
+			break;
 		}
 	}
 	glutPostRedisplay();
@@ -1042,6 +1121,10 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	// 화면 사이즈 조절
 	width = 1000;
 	height = 1000;
+
+	realX = posX;
+	realY = posY;
+	realZ = posZ;
 
 	//--- 윈도우 생성하기
 	glutInit(&argc, argv); // glut 초기화
