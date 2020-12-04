@@ -11,9 +11,12 @@
 #include <gl/glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 // 정의는 이곳에 해주세요
+#define PI 3.141592
 #define MAX_WALL 54
+#define MAX_ZOMBIE 17
 
 GLuint vertexShader;
 GLuint fragmentShader;
@@ -24,7 +27,7 @@ GLfloat g_window_w, g_window_h;
 GLchar errorLog[512];
 GLint width, height;
 GLuint s_program;
-GLuint vao[3], vbo[2];
+GLuint vao[4], vbo[2];
 
 // 사용할 구조체 여기에 선언해주세요
 struct Collision
@@ -33,7 +36,19 @@ struct Collision
 	GLfloat bottom_z, top_z;
 };
 
-struct Collision collision[54] =
+struct Zombie
+{
+	GLfloat posX, posY, posZ;
+	GLfloat mr; // 팔, 다리 회전각
+	GLfloat dmr; // 회전 속도
+	GLfloat ds; // 이동 속도
+	GLint state; // 1 - 앞 2 - 왼 3 - 뒤 4 - 오
+	GLfloat state_rotation; // state에 따른 회전각
+	GLint concept_state; // 1 - 정지 2 - 배회 3 - 추적
+	GLint count; // 위치변화 횟수
+};
+
+struct Collision collision[MAX_WALL] =
 { {5.f,6.f,0.f,32.f},{9.f,26.f,0.f,1.f},{25.f,26.f,0.f,32.f},{6.f,22.f,16.f,17.f},
 	{9.f,25.f,20.f,21.f},{14.f,22.f,4.f,5.f},{17.f,25.f,12.f,13.f},{9.f,17.f,28.f,29.f},
 	{9.f,13.f,8.f,9.f},{18.f,22.f,24.f,25.f},{21.f,25.f,28.f,29.f},{1.f,16.f,32.f,33.f},
@@ -49,9 +64,11 @@ struct Collision collision[54] =
 	{17.f,25.f,52.f,53.f},{17.f,25.f,56.f,57.f},{4.f,13.f,52.f,53.f},{13.f,21.f,60.f,61.f},
 	{0.f,17.f,64.f,65.f},{21.f,33.f,64.f,65.f}
 };
+struct Zombie zombie[MAX_ZOMBIE] = { 0, };
 
 // 추가 변수 여기에 선언해주세요
 GLfloat dx = 0.f, dy = 0.f, dz = 0.f; // 이동값
+GLfloat rotate = 0.f; // 회전 값
 GLfloat ds = 0.1f; // 이동크기값
 GLfloat posX = 0.f, posY = 2.f, posZ = 0.f; // 초기 생성 위치 값
 GLfloat realX, realY, realZ; // 실제 좌표 값
@@ -59,12 +76,7 @@ GLfloat realbody = 0.3f; // 카메라가 주인공이기에 가상의 두께 값
 GLboolean camera_set = GL_FALSE;
 GLboolean col = GL_FALSE; // 충돌 여부판단
 GLuint state = 0; // 0 - 정지 1 - 앞 2 - 뒤 3 - 좌 4 - 우
-
-// 추가 함수 여기에 선언해주세요
-GLvoid drawScene(GLvoid);
-GLvoid Reshape(int w, int h);
-GLvoid KeyBoard(unsigned char key, int x, int y);
-GLvoid Timer(int value);
+GLuint rotate_state = 0; // 0 - 정지 1 - 좌 2 - 우
 
 // 여기에 도형 좌표 해주세요
 GLfloat line[6][3] = {
@@ -110,6 +122,32 @@ GLfloat cube[36][3] = {
 	{ -0.0f, 1.0f, 1.0f},
 	{ 1.0f,-0.0f, 1.0f}
 };
+GLfloat zombie_body[36][3] = {
+	{-0.25,1.0,0.25},{-0.25,0.0,0.25},{0.25,0.0,0.25},
+	{-0.25,1.0,0.25},{0.25,0.0,0.25},{0.25,1.0,0.25}, // 앞면
+	{ 0.25,1.0,0.25},{0.25,0.0,0.25},{0.25,0.0,-0.25},
+	{0.25,1.0,0.25},{0.25,0.0,-0.25},{0.25,1.0,-0.25}, // 오른면
+	{0.25,1.0,-0.25},{0.25,0.0,-0.25},{-0.25,0.0,-0.25},
+	{0.25,1.0, -0.25},{-0.25,0.0,-0.25},{-0.25,1.0,-0.25}, // 뒷면
+	{-0.25,1.0,-0.25},{-0.25,0.0,-0.25},{-0.25,0.0,0.25},
+	{-0.25,1.0,-0.25},{-0.25,0.0,0.25},{-0.25,1.0,0.25}, // 왼쪽면
+	{-0.25,1.0,-0.25},{-0.25,1.0,0.25},{0.25,1.0,0.25},
+	{-0.25,1.0, -0.25},{0.25,1.0,0.25},{0.25,1.0,-0.25}, // 윗면
+	{-0.25,0.0,0.25},{-0.25,0.0,-0.25},{0.25,0.0,-0.25},
+	{0.25,0.0,-0.25},{-0.25,0.0,-0.25},{0.25,0.0,-0.25} // 아랫면
+};
+
+// 추가 함수 여기에 선언해주세요
+GLdouble GetRadian(GLfloat angle)
+{
+	return  angle * PI / 180.f;
+}
+
+GLvoid drawScene(GLvoid);
+GLvoid Reshape(int w, int h);
+GLvoid KeyBoard(unsigned char key, int x, int y);
+GLvoid KeyUp(unsigned char key, int x, int y);
+GLvoid Timer(int value);
 
 char* filetobuf(const char* file) {
 
@@ -175,7 +213,7 @@ void make_fragmentShaders()
 
 void InitBuffer()
 {
-	glGenVertexArrays(3, vao);
+	glGenVertexArrays(4, vao);
 
 	// x,y,z 축	
 	glBindVertexArray(vao[0]);
@@ -193,8 +231,16 @@ void InitBuffer()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
 
-	// floor
+	// zombie
 	glBindVertexArray(vao[2]);
+	glGenBuffers(2, vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), zombie_body, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	// floor
+	glBindVertexArray(vao[3]);
 	glGenBuffers(2, vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), cube, GL_STATIC_DRAW);
@@ -243,6 +289,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 
 	glm::mat4 view = glm::mat4(1.0f);
 	glm::mat4 transPos = glm::mat4(1.0f);
+	glm::mat4 rotatePos = glm::mat4(1.0f);
 	if (!camera_set) // 상공시점
 	{
 		transPos = glm::translate(transPos, glm::vec3(dx, dy, dz));
@@ -251,9 +298,10 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	}
 	else // 주인공 시점
 	{
+		rotatePos = glm::rotate(rotatePos, glm::radians(rotate), glm::vec3(0.0f, 1.0f, 0.0f));
 		transPos = glm::translate(transPos, glm::vec3(dx, dy, dz));
 		view = glm::lookAt(cameraPos2, cameraTarget2, cameraUp2);
-		view = transPos * view;
+		view = rotatePos * transPos * view;
 	}	
 	unsigned int viewLocation = glGetUniformLocation(s_program, "viewTransform");
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
@@ -933,7 +981,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
-	glBindVertexArray(vao[2]);
+	glBindVertexArray(vao[3]);
 	colorLocation = glGetUniformLocation(s_program, "color");
 	glUniform3f(colorLocation, 0.5, 0.4, 0.4);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -948,9 +996,157 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
-	glBindVertexArray(vao[2]);
+	glBindVertexArray(vao[3]);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	*/
+
+	// zombie
+	glm::mat4 Ty = glm::mat4(1.0f);
+	glm::mat4 Ty1 = glm::mat4(1.0f);
+	glm::mat4 Ty2 = glm::mat4(1.0f);
+	glm::mat4 Tx = glm::mat4(1.0f);
+	glm::mat4 Tz = glm::mat4(1.0f);
+	glm::mat4 TS = glm::mat4(1.0f);
+	glm::mat4 TDO = glm::mat4(1.0f);
+	glm::mat4 RS = glm::mat4(1.0f);
+	glm::mat4 Rx = glm::mat4(1.0f);
+	glm::mat4 TM = glm::mat4(1.0f);
+	glm::mat4 TJy = glm::mat4(1.0f);
+	for (int i = 0; i < MAX_ZOMBIE; i++)
+	{
+		// 로봇 머리 그리기
+		colorLocation = glGetUniformLocation(s_program, "color");
+		glUniform3f(colorLocation, 0.7, 0.7, 0.7);
+		TT = glm::mat4(1.0f);
+		TS = glm::mat4(1.0f);
+		Ty = glm::mat4(1.0f);
+		RS = glm::mat4(1.0f);
+		TM = glm::mat4(1.0f);
+		TM = glm::translate(TM, glm::vec3(zombie[i].posX, zombie[i].posY, zombie[i].posZ));
+		RS = glm::rotate(RS, glm::radians(zombie[i].state_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
+		Ty = glm::translate(Ty, glm::vec3(0.0f, 1.0f, 0.0f));
+		TS = glm::scale(TS, glm::vec3(1.0f, 0.4f, 0.5f));
+		TT = TM * RS * Ty * TS;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+		glBindVertexArray(vao[2]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// 로봇 코 그리기
+		colorLocation = glGetUniformLocation(s_program, "color");
+		glUniform3f(colorLocation, 0.5, 0.5, 0.5);
+		TT = glm::mat4(1.0f);
+		TS = glm::mat4(1.0f);
+		Ty = glm::mat4(1.0f);
+		Tz = glm::mat4(1.0f);
+		Tz = glm::translate(Tz, glm::vec3(0.0f, 0.0f, 0.15f));
+		Ty = glm::translate(Ty, glm::vec3(0.0f, 1.2f, 0.0f));
+		TS = glm::scale(TS, glm::vec3(0.3f, 0.1f, 0.2f));
+		TT = TM * RS * Tz * Ty * TS;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+		glBindVertexArray(vao[2]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+
+		// 로봇 몸 그리기
+		colorLocation = glGetUniformLocation(s_program, "color");
+		glUniform3f(colorLocation, 1.0, 0.0, 0.0);
+		TT = glm::mat4(1.0f);
+		TS = glm::mat4(1.0f);
+		Ty = glm::mat4(1.0f);
+		Ty = glm::translate(Ty, glm::vec3(0.0f, 0.5f, 0.0f));
+		TS = glm::scale(TS, glm::vec3(1.5f, 0.6f, 0.7f));
+		TT = TM * RS * Ty * TS;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+		glBindVertexArray(vao[2]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// 로봇 왼다리 그리기
+		colorLocation = glGetUniformLocation(s_program, "color");
+		glUniform3f(colorLocation, 1.0, 1.0, 0.0);
+		TT = glm::mat4(1.0f);
+		TS = glm::mat4(1.0f);
+		Tx = glm::mat4(1.0f);
+		Rx = glm::mat4(1.0f);
+		Ty1 = glm::mat4(1.0f);
+		Ty2 = glm::mat4(1.0f);
+		Ty1 = glm::translate(Ty1, glm::vec3(0.0f, 0.3f, 0.0f));
+		Ty2 = glm::translate(Ty2, glm::vec3(0.0f, -0.3f, 0.0f));
+		Rx = glm::rotate(Rx, glm::radians(zombie[i].mr + 180.f), glm::vec3(1.0f, 0.0f, 0.0f));
+		Tx = glm::translate(Tx, glm::vec3(-0.2f, 1.0f, 0.0f));
+		TS = glm::scale(TS, glm::vec3(0.3f, 0.6f, 0.2f));
+		TT = TM * RS * Tx * TS * Ty2 * Rx * Ty1;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+		glBindVertexArray(vao[2]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// 로봇 오른다리 그리기
+		colorLocation = glGetUniformLocation(s_program, "color");
+		glUniform3f(colorLocation, 1.0, 0.0, 1.0);
+		TT = glm::mat4(1.0f);
+		TS = glm::mat4(1.0f);
+		Tx = glm::mat4(1.0f);
+		Ty1 = glm::mat4(1.0f);
+		Ty2 = glm::mat4(1.0f);
+		Rx = glm::mat4(1.0f);
+		Ty1 = glm::translate(Ty1, glm::vec3(0.0f, 0.3f, 0.0f));
+		Ty2 = glm::translate(Ty2, glm::vec3(0.0f, -0.3f, 0.0f));
+		Tx = glm::translate(Tx, glm::vec3(0.2f, 1.0f, 0.0f));
+		Rx = glm::rotate(Rx, glm::radians(-zombie[i].mr + 180.f), glm::vec3(1.0f, 0.0f, 0.0f));
+		TS = glm::scale(TS, glm::vec3(0.3f, 0.6f, 0.2f));
+		TT = TM * RS * Tx * TS * Ty2 * Rx * Ty1;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+		glBindVertexArray(vao[2]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// 로봇 왼팔 그리기
+		colorLocation = glGetUniformLocation(s_program, "color");
+		glUniform3f(colorLocation, 1.0, 1.0, 0.0);
+		TT = glm::mat4(1.0f);
+		TS = glm::mat4(1.0f);
+		Ty = glm::mat4(1.0f);
+		Tx = glm::mat4(1.0f);
+		Ty1 = glm::mat4(1.0f);
+		Ty2 = glm::mat4(1.0f);
+		Rx = glm::mat4(1.0f);
+		Ty1 = glm::translate(Ty1, glm::vec3(0.0f, 0.3f, 0.0f));
+		Ty2 = glm::translate(Ty2, glm::vec3(0.0f, -0.3f, 0.0f));
+		Tx = glm::translate(Tx, glm::vec3(-0.4f, 0.0f, 0.0f));
+		Ty = glm::translate(Ty, glm::vec3(0.0f, 1.4f, 0.0f));
+		TS = glm::scale(TS, glm::vec3(0.4f, 0.6f, 0.2f));
+		Rx = glm::rotate(Rx, glm::radians(-zombie[i].mr + 180.f), glm::vec3(1.0f, 0.0f, 0.0f));
+		TT = TM * RS * Tx * Ty * TS * Ty2 * Rx * Ty1;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+		glBindVertexArray(vao[2]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// 로봇 오른팔 그리기
+		colorLocation = glGetUniformLocation(s_program, "color");
+		glUniform3f(colorLocation, 1.0, 0.0, 1.0);
+		TT = glm::mat4(1.0f);
+		TS = glm::mat4(1.0f);
+		Ty = glm::mat4(1.0f);
+		Tx = glm::mat4(1.0f);
+		Ty1 = glm::mat4(1.0f);
+		Ty2 = glm::mat4(1.0f);
+		Rx = glm::mat4(1.0f);
+		Ty1 = glm::translate(Ty1, glm::vec3(0.0f, 0.3f, 0.0f));
+		Ty2 = glm::translate(Ty2, glm::vec3(0.0f, -0.3f, 0.0f));
+		Tx = glm::translate(Tx, glm::vec3(0.4f, 0.0f, 0.0f));
+		Ty = glm::translate(Ty, glm::vec3(0.0f, 1.4f, 0.0f));
+		TS = glm::scale(TS, glm::vec3(0.4f, 0.6f, 0.2f));
+		Rx = glm::rotate(Rx, glm::radians(zombie[i].mr + 180.f), glm::vec3(1.0f, 0.0f, 0.0f));
+		TT = TM * RS * Tx * Ty * TS * Ty2 * Rx * Ty1;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+		glBindVertexArray(vao[2]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
 
 	glutSwapBuffers(); // 화면에 출력하기
 }
@@ -971,6 +1167,12 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 	case 'd' | 'D':
 		state = 4;
 		break;
+	case 'q' | 'Q': // 왼쪽 회전
+		rotate_state = 1;
+		break;
+	case 'e' | 'E': // 우측 회전
+		rotate_state = 2;
+		break;
 	case 't' | 'T': // 카메라 시점 바꾸기
 		if (!camera_set) 
 		{
@@ -981,8 +1183,8 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 			camera_set = GL_FALSE; // 상공 시점
 		}
 		break;
-	case 'q':
-	case 'Q':
+	case 'g':
+	case 'G':
 		glutLeaveMainLoop();
 		break;
 	default:
@@ -997,8 +1199,12 @@ GLvoid KeyUp(unsigned char key, int x, int y) {
 	case 'w' | 'W':
 	case 'a' | 'A':
 	case 's' | 'S':
-	case 'd' | 'D' :
+	case 'd' | 'D':
 		state = 0;
+		break;
+	case 'q' | 'Q':
+	case 'e' | 'E':
+		rotate_state = 0;
 		break;
 	default:
 		break;
@@ -1015,8 +1221,8 @@ GLvoid Timer(int value) {
 		case 1: // 앞
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ + ds > collision[i].bottom_z - realbody && realZ + ds < collision[i].top_z + realbody &&
-					realX > collision[i].left_x - realbody && realX < collision[i].right_x + realbody)
+				if (realZ + (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
+					realX + (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 				{
 					col = GL_TRUE;
 				}
@@ -1027,8 +1233,10 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dz += ds;
-				realZ += ds;
+				dz += (ds * sin(GetRadian(90 - rotate)));
+				dx -= (ds * cos(GetRadian(90 - rotate)));
+				realZ += (ds * sin(GetRadian(90 - rotate)));
+				realX += (ds * cos(GetRadian(90 - rotate)));
 			}
 			else 
 			{
@@ -1038,8 +1246,8 @@ GLvoid Timer(int value) {
 		case 2: // 뒤
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ - ds > collision[i].bottom_z - realbody && realZ - ds < collision[i].top_z + realbody &&
-					realX > collision[i].left_x - realbody && realX < collision[i].right_x + realbody)
+				if (realZ - (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
+					realX - (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 				{
 					col = GL_TRUE;
 				}
@@ -1050,8 +1258,10 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dz -= ds;
-				realZ -= ds;
+				dz -= (ds * sin(GetRadian(90 - rotate)));
+				dx += (ds * cos(GetRadian(90 - rotate)));
+				realZ -= (ds * sin(GetRadian(90 - rotate)));
+				realX -= (ds * cos(GetRadian(90 - rotate)));
 				col = GL_FALSE;
 			}
 			else
@@ -1062,8 +1272,8 @@ GLvoid Timer(int value) {
 		case 3: // 좌
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ > collision[i].bottom_z - realbody && realZ < collision[i].top_z + realbody &&
-					realX - ds> collision[i].left_x - realbody && realX - ds < collision[i].right_x + realbody)
+				if (realZ - (ds * cos(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * cos(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
+					realX - (ds * sin(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * sin(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 				{
 					col = GL_TRUE;
 				}
@@ -1074,8 +1284,10 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dx += ds;
-				realX -= ds;
+				dz -= (ds * cos(GetRadian(90 - rotate)));
+				dx += (ds * sin(GetRadian(90 - rotate)));
+				realZ -= (ds * cos(GetRadian(90 - rotate)));
+				realX -= (ds * sin(GetRadian(90 - rotate)));
 				col = GL_FALSE;
 			}
 			else
@@ -1086,8 +1298,8 @@ GLvoid Timer(int value) {
 		case 4: // 우
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ > collision[i].bottom_z - realbody && realZ < collision[i].top_z + realbody &&
-					realX + ds> collision[i].left_x - realbody && realX + ds < collision[i].right_x + realbody)
+				if (realZ + (ds * cos(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * cos(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
+					realX + (ds * sin(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * sin(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 				{
 					col = GL_TRUE;
 				}
@@ -1098,8 +1310,10 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dx -= ds;
-				realX += ds;
+				dz += (ds * cos(GetRadian(90 - rotate)));
+				dx -= (ds * sin(GetRadian(90 - rotate)));
+				realZ += (ds * cos(GetRadian(90 - rotate)));
+				realX += (ds * sin(GetRadian(90 - rotate)));
 				col = GL_FALSE;
 			}
 			else
@@ -1111,16 +1325,271 @@ GLvoid Timer(int value) {
 			break;
 		}
 	}
+
+	if (rotate_state != 0)
+	{
+		switch (rotate_state)
+		{
+		case 1:
+			rotate -= 3.f;
+			break;
+		case 2:
+			rotate += 3.f;
+			break;
+		default:
+			break;
+		}		
+	}
+
+	// 좀비 움직임
+	for (int i = 0; i < MAX_ZOMBIE; i++)
+	{
+		switch (zombie[i].concept_state)
+		{
+		case 1: // 정지
+			break;
+		case 2: // 배회
+			switch (zombie[i].state)
+			{
+			case 1:
+				zombie[i].posZ -= zombie[i].ds;
+				zombie[i].count += 1;
+				if (zombie[i].posZ < 0.f)
+				{
+					switch (rand() % 3 + 1)
+					{
+					case 1:
+						zombie[i].state = 2;
+						zombie[i].state_rotation = -90.f;
+						break;
+					case 2:
+						zombie[i].state = 3;
+						zombie[i].state_rotation = 0.f;
+						break;
+					case 3:
+						zombie[i].state = 4;
+						zombie[i].state_rotation = 90.f;
+						break;
+					}
+				}
+				else if (zombie[i].count >= 40)
+				{
+					switch (rand() % 4 + 1)
+					{
+					case 1:
+						zombie[i].state = 1;
+						zombie[i].state_rotation = 180.f;
+						break;
+					case 2:
+						zombie[i].state = 2;
+						zombie[i].state_rotation = -90.f;
+						break;
+					case 3:
+						zombie[i].state = 3;
+						zombie[i].state_rotation = 0.f;
+						break;
+					case 4:
+						zombie[i].state = 4;
+						zombie[i].state_rotation = 90.f;
+						break;
+					}
+					zombie[i].count = 0;
+				}
+				break;
+			case 2:
+				zombie[i].posX -= zombie[i].ds;
+				zombie[i].count += 1;
+				if (zombie[i].posX < 0.f)
+				{
+					switch (rand() % 3 + 1)
+					{
+					case 1:
+						zombie[i].state = 1;
+						zombie[i].state_rotation = 180.f;
+						break;
+					case 2:
+						zombie[i].state = 3;
+						zombie[i].state_rotation = 0.f;
+						break;
+					case 3:
+						zombie[i].state = 4;
+						zombie[i].state_rotation = 90.f;
+						break;
+					}
+				}
+				else if (zombie[i].count >= 40)
+				{
+					switch (rand() % 4 + 1)
+					{
+					case 1:
+						zombie[i].state = 1;
+						zombie[i].state_rotation = 180.f;
+						break;
+					case 2:
+						zombie[i].state = 2;
+						zombie[i].state_rotation = -90.f;
+						break;
+					case 3:
+						zombie[i].state = 3;
+						zombie[i].state_rotation = 0.f;
+						break;
+					case 4:
+						zombie[i].state = 4;
+						zombie[i].state_rotation = 90.f;
+						break;
+					}
+					zombie[i].count = 0;
+				}
+				break;
+			case 3:
+				zombie[i].posZ += zombie[i].ds;
+				zombie[i].count += 1;
+				if (zombie[i].posZ > 65.f)
+				{
+					switch (rand() % 3 + 1)
+					{
+					case 1:
+						zombie[i].state = 1;
+						zombie[i].state_rotation = 180.f;
+						break;
+					case 2:
+						zombie[i].state = 2;
+						zombie[i].state_rotation = -90.f;
+						break;
+					case 3:
+						zombie[i].state = 4;
+						zombie[i].state_rotation = 90.f;
+						break;
+					}
+				}
+				else if (zombie[i].count >= 40)
+				{
+					switch (rand() % 4 + 1)
+					{
+					case 1:
+						zombie[i].state = 1;
+						zombie[i].state_rotation = 180.f;
+						break;
+					case 2:
+						zombie[i].state = 2;
+						zombie[i].state_rotation = -90.f;
+						break;
+					case 3:
+						zombie[i].state = 3;
+						zombie[i].state_rotation = 0.f;
+						break;
+					case 4:
+						zombie[i].state = 4;
+						zombie[i].state_rotation = 90.f;
+						break;
+					}
+					zombie[i].count = 0;
+				}
+				break;
+			case 4:
+				zombie[i].posX += zombie[i].ds;
+				zombie[i].count += 1;
+				if (zombie[i].posX > 33.f)
+				{
+					switch (rand() % 3 + 1)
+					{
+					case 1:
+						zombie[i].state = 1;
+						zombie[i].state_rotation = 180.f;
+						break;
+					case 2:
+						zombie[i].state = 2;
+						zombie[i].state_rotation = -90.f;
+						break;
+					case 3:
+						zombie[i].state = 3;
+						zombie[i].state_rotation = 0.f;
+						break;
+					}
+				}
+				else if (zombie[i].count >= 40)
+				{
+					switch (rand() % 4 + 1)
+					{
+					case 1:
+						zombie[i].state = 1;
+						zombie[i].state_rotation = 180.f;
+						break;
+					case 2:
+						zombie[i].state = 2;
+						zombie[i].state_rotation = -90.f;
+						break;
+					case 3:
+						zombie[i].state = 3;
+						zombie[i].state_rotation = 0.f;
+						break;
+					case 4:
+						zombie[i].state = 4;
+						zombie[i].state_rotation = 90.f;
+						break;
+					}
+					zombie[i].count = 0;
+				}
+				break;
+			}
+			break;
+		case 3: // 추적
+			break;		
+		}
+		zombie[i].mr += zombie[i].dmr;
+		if (zombie[i].mr >= 45.f) {
+			zombie[i].dmr *= -1.f;
+		}
+		else if (zombie[i].mr <= -45.f) {
+			zombie[i].dmr *= -1.f;
+		}
+	}
+
+
 	glutPostRedisplay();
 	glutTimerFunc(50, Timer, 1);
 }
 
 void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 {
+	// 키 셋
+	printf("wasd/WASD - 앞뒤좌우\n");
+	printf("q/Q - 좌측 회전\te/E - 우측 회전\n");
+	printf("t/T - 시점 변화\n");
+
 	srand((unsigned int)time(NULL));
 	// 화면 사이즈 조절
 	width = 1000;
 	height = 1000;
+
+	// 좀비 초기화
+	for (int i = 0; i < MAX_ZOMBIE; i++)
+	{
+		zombie[i].ds = 0.05f;
+		zombie[i].mr = 0.f;
+		zombie[i].dmr = 3.f;
+		zombie[i].concept_state = 2;
+		zombie[i].count = 0;
+		zombie[i].posX = rand() % 32 + 1;
+		zombie[i].posY = 1.0f;
+		zombie[i].posZ = rand() % 64 + 1;
+		zombie[i].state = rand() % 4 + 1;
+		switch (zombie[i].state)
+		{
+		case 1:
+			zombie[i].state_rotation = 180.f;
+			break;
+		case 2:
+			zombie[i].state_rotation = -90.f;
+			break;
+		case 3:
+			zombie[i].state_rotation = 0.f;
+			break;
+		case 4:
+			zombie[i].state_rotation = 90.f;
+			break;
+		}
+	}
 
 	realX = posX;
 	realY = posY;
@@ -1129,7 +1598,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	//--- 윈도우 생성하기
 	glutInit(&argc, argv); // glut 초기화
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH); // 디스플레이 모드 설정
-	glutInitWindowPosition(20, 20); // 윈도우의 위치 지정
+	glutInitWindowPosition(300, 20); // 윈도우의 위치 지정
 	glutInitWindowSize(width, height); // 윈도우의 크기 지정
 	glutCreateWindow("CGP"); // 윈도우 생성(윈도우 이름)
 
