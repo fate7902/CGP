@@ -23,6 +23,10 @@ GLint width, height;
 GLuint s_program;
 GLuint vao[3], vbo[2];
 
+// 추가 변수 여기에 선언해주세요
+GLfloat dx = 0.f, dy = 0.f, dz = 0.f;
+GLboolean camera_set = GL_FALSE;
+
 GLvoid drawScene(GLvoid);
 GLvoid Reshape(int w, int h);
 GLvoid KeyBoard(unsigned char key, int x, int y);
@@ -77,12 +81,8 @@ GLfloat cube[36][3] = {
 	{ -0.0f, 1.0f, 1.0f},
 	{ 1.0f,-0.0f, 1.0f}
 };
-
 GLfloat cubecolors[36][3]{ 0 };
-
 GLfloat floorcolors[36][3] = { 0 };
-
-GLfloat rycount = 30.0f;
 
 char* filetobuf(const char* file) {
 
@@ -214,18 +214,31 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glUseProgram(s_program);
 
 	// 카메라 위치
-	glm::vec3 cameraPos = glm::vec3(0.0f, 50.0f, 0.0f);
-
-	glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라가 바라보는 곳
+	glm::vec3 cameraPos = glm::vec3(0.0f, 50.0f, 0.0f); // 상공	
+	glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); // 상공카메라가 바라보는 곳	
 	glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget); //--- 카메라 방향 벡터
-
 	glm::vec3 up = glm::vec3(0.0f, 0.0f,-1.0f);
 	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-
 	glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
 
+	glm::vec3 cameraPos2 = glm::vec3(0.0f, 2.0f, 0.0f); // 주인공
+	glm::vec3 cameraTarget2 = glm::vec3(50.0f, 2.0f, 0.0f); // 주인공카메라가 바라보는 곳
+	glm::vec3 cameraUp2 = glm::vec3(0.0f, 1.0f, 0.0f);
+
 	glm::mat4 view = glm::mat4(1.0f);
-	view = glm::lookAt(cameraPos, cameraDirection, cameraUp);
+	glm::mat4 transPos = glm::mat4(1.0f);
+	if (!camera_set) // 상공시점
+	{
+		transPos = glm::translate(transPos, glm::vec3(dx, dy, dz));
+		view = glm::lookAt(cameraPos, cameraDirection, cameraUp);
+		view = transPos * view;
+	}
+	else // 주인공 시점
+	{
+		transPos = glm::translate(transPos, glm::vec3(dx, dy, dz));
+		view = glm::lookAt(cameraPos2, cameraTarget2, cameraUp2);
+		view = transPos * view;
+	}	
 	unsigned int viewLocation = glGetUniformLocation(s_program, "viewTransform");
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 
@@ -233,9 +246,6 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	unsigned int projecLocation = glGetUniformLocation(s_program, "projectionTransform");
 	glm::mat4 pTransform = glm::mat4(1.0f);
 	pTransform = glm::perspective(glm::radians(120.0f), (float)g_window_w / (float)g_window_h, 0.1f, 50.0f);
-	//pTransform = glm::translate(pTransform, glm::vec3(0.0f, 0.0f, -10.0f));
-	//pTransform = glm::rotate(pTransform, glm::radians(45.f), glm::vec3(1.0f, 0.0f, 0.0f));
-	//pTransform = glm::rotate(pTransform, glm::radians(45.f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glUniformMatrix4fv(projecLocation, 1, GL_FALSE, &pTransform[0][0]);
 
 	// 축 그리기
@@ -983,6 +993,28 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 {
 	switch (key)
 	{
+	case 'w' | 'W':
+		dz += 1.f;
+		break;
+	case 'a' | 'A':
+		dx += 1.f;
+		break;
+	case 's' | 'S':
+		dz -= 1.f;
+		break;
+	case 'd' | 'D':
+		dx -= 1.f;
+		break;
+	case 't' | 'T': // 카메라 시점 바꾸기
+		if (!camera_set) 
+		{
+			camera_set = GL_TRUE; // 주인공 시점
+		}
+		else
+		{
+			camera_set = GL_FALSE; // 상공 시점
+		}
+		break;
 	case 'q':
 	case 'Q':
 		glutLeaveMainLoop();
@@ -990,15 +1022,10 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 	default:
 		break;
 	}
-	InitShader();
-	InitBuffer();
 	glutPostRedisplay();
 }
 
 GLvoid Timer(int value) {
-	InitShader();
-	InitBuffer();
-	rycount += 2.0f;
 	glutPostRedisplay();
 	glutTimerFunc(50, Timer, 1);
 }
@@ -1027,7 +1054,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH); // 디스플레이 모드 설정
 	glutInitWindowPosition(20, 20); // 윈도우의 위치 지정
 	glutInitWindowSize(width, height); // 윈도우의 크기 지정
-	glutCreateWindow("Example1"); // 윈도우 생성(윈도우 이름)
+	glutCreateWindow("CGP"); // 윈도우 생성(윈도우 이름)
 
 	//--- GLEW 초기화하기
 	glewExperimental = GL_TRUE;
