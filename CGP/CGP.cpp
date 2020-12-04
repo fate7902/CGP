@@ -27,6 +27,7 @@ GLuint vao[3], vbo[2];
 GLfloat dx = 0.f, dy = 0.f, dz = 0.f;
 GLboolean camera_set = GL_FALSE;
 
+// 추가 함수 여기에 선언해주세요
 GLvoid drawScene(GLvoid);
 GLvoid Reshape(int w, int h);
 GLvoid KeyBoard(unsigned char key, int x, int y);
@@ -37,11 +38,6 @@ GLfloat line[6][3] = {
 	{-65.0f,0.0f,0.0f},{65.0f,0.0f,0.0f},
 	{0.0f,65.0f,0.0f},{0.0f,-65.0f,0.0f},
 	{0.0f,0.0f,-65.0f},{0.0f,0.0f,65.0f}
-};
-GLfloat line_colors[6][3] = {
-	{1.0,0.0,0.0},{1.0,0.0,0.0},
-	{1.0,0.0,0.0},{1.0,0.0,0.0},
-	{1.0,0.0,0.0},{1.0,0.0,0.0}
 };
 GLfloat cube[36][3] = {
 	{-0.0f,-0.0f,-0.0f}, // triangle 1 : begin
@@ -81,8 +77,6 @@ GLfloat cube[36][3] = {
 	{ -0.0f, 1.0f, 1.0f},
 	{ 1.0f,-0.0f, 1.0f}
 };
-GLfloat cubecolors[36][3]{ 0 };
-GLfloat floorcolors[36][3] = { 0 };
 
 char* filetobuf(const char* file) {
 
@@ -157,10 +151,6 @@ void InitBuffer()
 	glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GLfloat), line, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(GLfloat), line_colors, GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
 
 	// wall
 	glBindVertexArray(vao[1]);
@@ -169,10 +159,6 @@ void InitBuffer()
 	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), cube, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), cubecolors, GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
 
 	// floor
 	glBindVertexArray(vao[2]);
@@ -181,10 +167,6 @@ void InitBuffer()
 	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), cube, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), floorcolors, GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
 }
 
 void InitShader()
@@ -214,15 +196,16 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glUseProgram(s_program);
 
 	// 카메라 위치
-	glm::vec3 cameraPos = glm::vec3(0.0f, 50.0f, 0.0f); // 상공	
-	glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); // 상공카메라가 바라보는 곳	
+	// 상공
+	glm::vec3 cameraPos = glm::vec3(0.0f, 50.0f, 0.0f);
+	glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); // 카메라가 바라보는 곳	
 	glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget); //--- 카메라 방향 벡터
 	glm::vec3 up = glm::vec3(0.0f, 0.0f,-1.0f);
 	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
 	glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
-
-	glm::vec3 cameraPos2 = glm::vec3(0.0f, 2.0f, 0.0f); // 주인공
-	glm::vec3 cameraTarget2 = glm::vec3(50.0f, 2.0f, 0.0f); // 주인공카메라가 바라보는 곳
+	// 주인공
+	glm::vec3 cameraPos2 = glm::vec3(0.0f, 2.0f, 0.0f);
+	glm::vec3 cameraTarget2 = glm::vec3(50.0f, 2.0f, 0.0f);
 	glm::vec3 cameraUp2 = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	glm::mat4 view = glm::mat4(1.0f);
@@ -252,6 +235,8 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glm::mat4 TT = glm::mat4(1.0f);
 	unsigned int modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+	unsigned int colorLocation = glGetUniformLocation(s_program, "color"); // 색상인자 매칭
+	glUniform3f(colorLocation, 1.0, 0.0, 0.0); // 색상값 주기
 	glBindVertexArray(vao[0]);
 	glDrawArrays(GL_LINES, 0, 6);
 
@@ -261,715 +246,664 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glm::mat4 MX = glm::mat4(1.0f);
 	glm::mat4 CS = glm::mat4(1.0f);
 	CS = glm::scale(CS, glm::vec3(32.0f, 10.0f, 1.0));
-	MX = glm::translate(MX, glm::vec3(0.0f, 0.0f, 5.0f)); //--- model 행렬에 이동 변환 적용
+	MX = glm::translate(MX, glm::vec3(0.0f, 0.0f, 5.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	colorLocation = glGetUniformLocation(s_program, "color");
+	glUniform3f(colorLocation, 0.2, 0.4, 0.7);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	// wall2
 	glm::mat4 CT2 = glm::mat4(1.0f);
 	glm::mat4 MX2 = glm::mat4(1.0f);
 	glm::mat4 CS2 = glm::mat4(1.0f);
 	CS2 = glm::scale(CS2, glm::vec3(1.0f, 10.0f, 16.0f));
-	MX2 = glm::translate(MX2, glm::vec3(0.0f, 0.0f, 9.0f)); //--- model 행렬에 이동 변환 적용
+	MX2 = glm::translate(MX2, glm::vec3(0.0f, 0.0f, 9.0f));
 	CT2 = MX2 * CS2;
-	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT2)); //--- modelTransform 변수에 변환 값 적용하기
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");	
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT2));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	// wall3
 	glm::mat4 CT3 = glm::mat4(1.0f);
 	glm::mat4 MX3 = glm::mat4(1.0f);
 	glm::mat4 CS3 = glm::mat4(1.0f);
 	CS3 = glm::scale(CS3, glm::vec3(32.0f, 10.0f, 1.0f));
-	MX3 = glm::translate(MX3, glm::vec3(0.0f, 0.0f, 25.0f)); //--- model 행렬에 이동 변환 적용
+	MX3 = glm::translate(MX3, glm::vec3(0.0f, 0.0f, 25.0f));
 	CT3 = MX3 * CS3;
-	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT3)); //--- modelTransform 변수에 변환 값 적용하기
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");	
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT3));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall4
 	glm::mat4 CT4 = glm::mat4(1.0f);
 	glm::mat4 MX4 = glm::mat4(1.0f);
 	glm::mat4 CS4 = glm::mat4(1.0f);
 	CS4 = glm::scale(CS4, glm::vec3(1.0f, 10.0f, 16.0f));
-	MX4 = glm::translate(MX4, glm::vec3(16.0f, 0.0f, 6.0f)); //--- model 행렬에 이동 변환 적용
+	MX4 = glm::translate(MX4, glm::vec3(16.0f, 0.0f, 6.0f));
 	CT4 = MX4 * CS4;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT4)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT4));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall5
 	glm::mat4 CT5 = glm::mat4(1.0f);
 	glm::mat4 MX5 = glm::mat4(1.0f);
 	glm::mat4 CS5 = glm::mat4(1.0f);
 	CS5 = glm::scale(CS5, glm::vec3(1.0f, 10.0f, 16.0f));
-	MX5 = glm::translate(MX5, glm::vec3(20.0f, 0.0f, 9.0f)); //--- model 행렬에 이동 변환 적용
+	MX5 = glm::translate(MX5, glm::vec3(20.0f, 0.0f, 9.0f));
 	CT5 = MX5 * CS5;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT5)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT5));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall6
 	glm::mat4 CT6 = glm::mat4(1.0f);
 	glm::mat4 MX6 = glm::mat4(1.0f);
 	glm::mat4 CS6 = glm::mat4(1.0f);
 	CS6 = glm::scale(CS6, glm::vec3(1.0f, 10.0f, 8.0f));
-	MX6 = glm::translate(MX6, glm::vec3(4.0f, 0.0f, 14.0f)); //--- model 행렬에 이동 변환 적용
+	MX6 = glm::translate(MX6, glm::vec3(4.0f, 0.0f, 14.0f));
 	CT6 = MX6 * CS6;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT6)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT6));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall7
 	glm::mat4 CT7 = glm::mat4(1.0f);
 	glm::mat4 MX7 = glm::mat4(1.0f);
 	glm::mat4 CS7 = glm::mat4(1.0f);
 	CS7 = glm::scale(CS7, glm::vec3(1.0f, 10.0f, 8.0f));
-	MX7 = glm::translate(MX7, glm::vec3(12.0f, 0.0f, 17.0f)); //--- model 행렬에 이동 변환 적용
+	MX7 = glm::translate(MX7, glm::vec3(12.0f, 0.0f, 17.0f));
 	CT7 = MX7 * CS7;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT7)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT7));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall8
 	glm::mat4 CT8 = glm::mat4(1.0f);
 	glm::mat4 MX8 = glm::mat4(1.0f);
 	glm::mat4 CS8 = glm::mat4(1.0f);
 	CS8 = glm::scale(CS8, glm::vec3(1.0f, 10.0f, 8.0f));
-	MX8 = glm::translate(MX8, glm::vec3(28.0f, 0.0f, 9.0f)); //--- model 행렬에 이동 변환 적용
+	MX8 = glm::translate(MX8, glm::vec3(28.0f, 0.0f, 9.0f));
 	CT8 = MX8 * CS8;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT8)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT8));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall9	
 	glm::mat4 CT9 = glm::mat4(1.0f);
 	glm::mat4 MX9 = glm::mat4(1.0f);
 	glm::mat4 CS9 = glm::mat4(1.0f);
 	CS9 = glm::scale(CS9, glm::vec3(1.0f, 10.0f, 4.0f));
-	MX9 = glm::translate(MX9, glm::vec3(8.0f, 0.0f, 9.0f)); //--- model 행렬에 이동 변환 적용
+	MX9 = glm::translate(MX9, glm::vec3(8.0f, 0.0f, 9.0f));
 	CT9 = MX9 * CS9;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT9)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT9));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall10	
 	glm::mat4 CT10 = glm::mat4(1.0f);
 	glm::mat4 MX10 = glm::mat4(1.0f);
 	glm::mat4 CS10 = glm::mat4(1.0f);
 	CS10 = glm::scale(CS10, glm::vec3(1.0f, 10.0f, 4.0f));
-	MX10 = glm::translate(MX10, glm::vec3(24.0f, 0.0f, 18.0f)); //--- model 행렬에 이동 변환 적용
+	MX10 = glm::translate(MX10, glm::vec3(24.0f, 0.0f, 18.0f));
 	CT10 = MX10 * CS10;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT10)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT10));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall11	
 	glm::mat4 CT11 = glm::mat4(1.0f);
 	glm::mat4 MX11 = glm::mat4(1.0f);
 	glm::mat4 CS11 = glm::mat4(1.0f);
 	CS11 = glm::scale(CS11, glm::vec3(1.0f, 10.0f, 4.0f));
-	MX11 = glm::translate(MX11, glm::vec3(28.0f, 0.0f, 21.0f)); //--- model 행렬에 이동 변환 적용
+	MX11 = glm::translate(MX11, glm::vec3(28.0f, 0.0f, 21.0f));
 	CT11 = MX11 * CS11;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT11)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT11));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall12	
 	glm::mat4 CT12 = glm::mat4(1.0f);
 	glm::mat4 MX12 = glm::mat4(1.0f);
 	glm::mat4 CS12 = glm::mat4(1.0f);
 	CS12 = glm::scale(CS12, glm::vec3(1.0f, 10.0f, 15.0f));
-	MX12 = glm::translate(MX12, glm::vec3(32.0f, 0.0f, 1.0f)); //--- model 행렬에 이동 변환 적용
+	MX12 = glm::translate(MX12, glm::vec3(32.0f, 0.0f, 1.0f));
 	CT12 = MX12 * CS12;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT12)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT12));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall13	
 	glm::mat4 CT13 = glm::mat4(1.0f);
 	glm::mat4 MX13 = glm::mat4(1.0f);
 	glm::mat4 CS13 = glm::mat4(1.0f);
 	CS13 = glm::scale(CS13, glm::vec3(1.0f, 10.0f, 12.0f));
-	MX13 = glm::translate(MX13, glm::vec3(32.0f, 0.0f, 20.0f)); //--- model 행렬에 이동 변환 적용
+	MX13 = glm::translate(MX13, glm::vec3(32.0f, 0.0f, 20.0f));
 	CT13 = MX13 * CS13;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT13)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT13));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall14	
 	glm::mat4 CT14 = glm::mat4(1.0f);
 	glm::mat4 MX14 = glm::mat4(1.0f);
 	glm::mat4 CS14 = glm::mat4(1.0f);
 	CS14 = glm::scale(CS14, glm::vec3(32.0f, 10.0f, 1.0f));
-	MX14 = glm::translate(MX14, glm::vec3(32.0f, 0.0f, 0.0f)); //--- model 행렬에 이동 변환 적용
+	MX14 = glm::translate(MX14, glm::vec3(32.0f, 0.0f, 0.0f));
 	CT14 = MX14 * CS14;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT14)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT14));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall15
 	glm::mat4 CT15 = glm::mat4(1.0f);
 	glm::mat4 MX15 = glm::mat4(1.0f);
 	glm::mat4 CS15 = glm::mat4(1.0f);
 	CS15 = glm::scale(CS15, glm::vec3(32.0f, 10.0f, 1.0f));
-	MX15 = glm::translate(MX15, glm::vec3(32.0f, 0.0f, 32.0f)); //--- model 행렬에 이동 변환 적용
+	MX15 = glm::translate(MX15, glm::vec3(32.0f, 0.0f, 32.0f));
 	CT15 = MX15 * CS15;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT15)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT15));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall16	
 	glm::mat4 CT16 = glm::mat4(1.0f);
 	glm::mat4 MX16 = glm::mat4(1.0f);
 	glm::mat4 CS16 = glm::mat4(1.0f);
 	CS16 = glm::scale(CS16, glm::vec3(12.0f, 10.0f, 1.0f));
-	MX16 = glm::translate(MX16, glm::vec3(4.0f, 0.0f, 13.0f)); //--- model 행렬에 이동 변환 적용
+	MX16 = glm::translate(MX16, glm::vec3(4.0f, 0.0f, 13.0f));
 	CT16 = MX16 * CS16;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT16)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT16));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall17	
 	glm::mat4 CT17 = glm::mat4(1.0f);
 	glm::mat4 MX17 = glm::mat4(1.0f);
 	glm::mat4 CS17 = glm::mat4(1.0f);
 	CS17 = glm::scale(CS17, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX17 = glm::translate(MX17, glm::vec3(5.0f, 0.0f, 21.0f)); //--- model 행렬에 이동 변환 적용
+	MX17 = glm::translate(MX17, glm::vec3(5.0f, 0.0f, 21.0f));
 	CT17 = MX17 * CS17;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT17)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT17));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall18	
 	glm::mat4 CT18 = glm::mat4(1.0f);
 	glm::mat4 MX18 = glm::mat4(1.0f);
 	glm::mat4 CS18 = glm::mat4(1.0f);
 	CS18 = glm::scale(CS18, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX18 = glm::translate(MX18, glm::vec3(8.0f, 0.0f, 17.0f)); //--- model 행렬에 이동 변환 적용
+	MX18 = glm::translate(MX18, glm::vec3(8.0f, 0.0f, 17.0f));
 	CT18 = MX18 * CS18;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT18)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT18));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall19	
 	glm::mat4 CT19 = glm::mat4(1.0f);
 	glm::mat4 MX19 = glm::mat4(1.0f);
 	glm::mat4 CS19 = glm::mat4(1.0f);
 	CS19 = glm::scale(CS19, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX19 = glm::translate(MX19, glm::vec3(9.0f, 0.0f, 9.0f)); //--- model 행렬에 이동 변환 적용
+	MX19 = glm::translate(MX19, glm::vec3(9.0f, 0.0f, 9.0f));
 	CT19 = MX19 * CS19;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT19)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT19));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall20	
 	glm::mat4 CT20 = glm::mat4(1.0f);
 	glm::mat4 MX20 = glm::mat4(1.0f);
 	glm::mat4 CS20 = glm::mat4(1.0f);
 	CS20 = glm::scale(CS20, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX20 = glm::translate(MX20, glm::vec3(21.0f, 0.0f, 13.0f)); //--- model 행렬에 이동 변환 적용
+	MX20 = glm::translate(MX20, glm::vec3(21.0f, 0.0f, 13.0f));
 	CT20 = MX20 * CS20;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT20)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT20));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall21	
 	glm::mat4 CT21 = glm::mat4(1.0f);
 	glm::mat4 MX21 = glm::mat4(1.0f);
 	glm::mat4 CS21 = glm::mat4(1.0f);
 	CS21 = glm::scale(CS21, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX21 = glm::translate(MX21, glm::vec3(24.0f, 0.0f, 9.0f)); //--- model 행렬에 이동 변환 적용
+	MX21 = glm::translate(MX21, glm::vec3(24.0f, 0.0f, 9.0f));
 	CT21 = MX21 * CS21;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT21)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT21));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall22	
 	glm::mat4 CT22 = glm::mat4(1.0f);
 	glm::mat4 MX22 = glm::mat4(1.0f);
 	glm::mat4 CS22 = glm::mat4(1.0f);
 	CS22 = glm::scale(CS22, glm::vec3(5.0f, 10.0f, 1.0f));
-	MX22 = glm::translate(MX22, glm::vec3(24.0f, 0.0f, 17.0f)); //--- model 행렬에 이동 변환 적용
+	MX22 = glm::translate(MX22, glm::vec3(24.0f, 0.0f, 17.0f));
 	CT22 = MX22 * CS22;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT22)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT22));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall23	
 	glm::mat4 CT23 = glm::mat4(1.0f);
 	glm::mat4 MX23 = glm::mat4(1.0f);
 	glm::mat4 CS23 = glm::mat4(1.0f);
 	CS23 = glm::scale(CS23, glm::vec3(8.0f, 10.0f, 1.0f));
-	MX23 = glm::translate(MX23, glm::vec3(29.0f, 0.0f, 16.0f)); //--- model 행렬에 이동 변환 적용
+	MX23 = glm::translate(MX23, glm::vec3(29.0f, 0.0f, 16.0f));
 	CT23 = MX23 * CS23;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT23)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT23));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall24	
 	glm::mat4 CT24 = glm::mat4(1.0f);
 	glm::mat4 MX24 = glm::mat4(1.0f);
 	glm::mat4 CS24 = glm::mat4(1.0f);
 	CS24 = glm::scale(CS24, glm::vec3(8.0f, 10.0f, 1.0f));
-	MX24 = glm::translate(MX24, glm::vec3(33.0f, 0.0f, 20.0f)); //--- model 행렬에 이동 변환 적용
+	MX24 = glm::translate(MX24, glm::vec3(33.0f, 0.0f, 20.0f));
 	CT24 = MX24 * CS24;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT24)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT24));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall25	
 	glm::mat4 CT25 = glm::mat4(1.0f);
 	glm::mat4 MX25 = glm::mat4(1.0f);
 	glm::mat4 CS25 = glm::mat4(1.0f);
 	CS25 = glm::scale(CS25, glm::vec3(8.0f, 10.0f, 1.0f));
-	MX25 = glm::translate(MX25, glm::vec3(44.0f, 0.0f, 20.0f)); //--- model 행렬에 이동 변환 적용
+	MX25 = glm::translate(MX25, glm::vec3(44.0f, 0.0f, 20.0f));
 	CT25 = MX25 * CS25;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT25)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT25));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall26	
 	glm::mat4 CT26 = glm::mat4(1.0f);
 	glm::mat4 MX26 = glm::mat4(1.0f);
 	glm::mat4 CS26 = glm::mat4(1.0f);
 	CS26 = glm::scale(CS26, glm::vec3(8.0f, 10.0f, 1.0f));
-	MX26 = glm::translate(MX26, glm::vec3(36.0f, 0.0f, 28.0f)); //--- model 행렬에 이동 변환 적용
+	MX26 = glm::translate(MX26, glm::vec3(36.0f, 0.0f, 28.0f));
 	CT26 = MX26 * CS26;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT26)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT26));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall27	
 	glm::mat4 CT27 = glm::mat4(1.0f);
 	glm::mat4 MX27 = glm::mat4(1.0f);
 	glm::mat4 CS27 = glm::mat4(1.0f);
 	CS27 = glm::scale(CS27, glm::vec3(8.0f, 10.0f, 1.0f));
-	MX27 = glm::translate(MX27, glm::vec3(52.0f, 0.0f, 13.0f)); //--- model 행렬에 이동 변환 적용
+	MX27 = glm::translate(MX27, glm::vec3(52.0f, 0.0f, 13.0f));
 	CT27 = MX27 * CS27;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT27)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT27));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall28	
 	glm::mat4 CT28 = glm::mat4(1.0f);
 	glm::mat4 MX28 = glm::mat4(1.0f);
 	glm::mat4 CS28 = glm::mat4(1.0f);
 	CS28 = glm::scale(CS28, glm::vec3(8.0f, 10.0f, 1.0f));
-	MX28 = glm::translate(MX28, glm::vec3(53.0f, 0.0f, 4.0f)); //--- model 행렬에 이동 변환 적용
+	MX28 = glm::translate(MX28, glm::vec3(53.0f, 0.0f, 4.0f));
 	CT28 = MX28 * CS28;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT28)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT28));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall29	
 	glm::mat4 CT29 = glm::mat4(1.0f);
 	glm::mat4 MX29 = glm::mat4(1.0f);
 	glm::mat4 CS29 = glm::mat4(1.0f);
 	CS29 = glm::scale(CS29, glm::vec3(13.0f, 10.0f, 1.0f));
-	MX29 = glm::translate(MX29, glm::vec3(36.0f, 0.0f, 24.0f)); //--- model 행렬에 이동 변환 적용
+	MX29 = glm::translate(MX29, glm::vec3(36.0f, 0.0f, 24.0f));
 	CT29 = MX29 * CS29;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT29)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT29));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall30	
 	glm::mat4 CT30 = glm::mat4(1.0f);
 	glm::mat4 MX30 = glm::mat4(1.0f);
 	glm::mat4 CS30 = glm::mat4(1.0f);
 	CS30 = glm::scale(CS30, glm::vec3(11.0f, 10.0f, 1.0f));
-	MX30 = glm::translate(MX30, glm::vec3(37.0f, 0.0f, 8.0f)); //--- model 행렬에 이동 변환 적용
+	MX30 = glm::translate(MX30, glm::vec3(37.0f, 0.0f, 8.0f));
 	CT30 = MX30 * CS30;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT30)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT30));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall31	
 	glm::mat4 CT31 = glm::mat4(1.0f);
 	glm::mat4 MX31 = glm::mat4(1.0f);
 	glm::mat4 CS31 = glm::mat4(1.0f);
 	CS31 = glm::scale(CS31, glm::vec3(13.0f, 10.0f, 1.0f));
-	MX31 = glm::translate(MX31, glm::vec3(48.0f, 0.0f, 28.0f)); //--- model 행렬에 이동 변환 적용
+	MX31 = glm::translate(MX31, glm::vec3(48.0f, 0.0f, 28.0f));
 	CT31 = MX31 * CS31;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT31)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT31));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall32	
 	glm::mat4 CT32 = glm::mat4(1.0f);
 	glm::mat4 MX32 = glm::mat4(1.0f);
 	glm::mat4 CS32 = glm::mat4(1.0f);
 	CS32 = glm::scale(CS32, glm::vec3(3.0f, 10.0f, 1.0f));
-	MX32 = glm::translate(MX32, glm::vec3(36.0f, 0.0f, 4.0f)); //--- model 행렬에 이동 변환 적용
+	MX32 = glm::translate(MX32, glm::vec3(36.0f, 0.0f, 4.0f));
 	CT32 = MX32 * CS32;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT32)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT32));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall33	
 	glm::mat4 CT33 = glm::mat4(1.0f);
 	glm::mat4 MX33 = glm::mat4(1.0f);
 	glm::mat4 CS33 = glm::mat4(1.0f);
 	CS33 = glm::scale(CS33, glm::vec3(5.0f, 10.0f, 1.0f));
-	MX33 = glm::translate(MX33, glm::vec3(43.0f, 0.0f, 4.0f)); //--- model 행렬에 이동 변환 적용
+	MX33 = glm::translate(MX33, glm::vec3(43.0f, 0.0f, 4.0f));
 	CT33 = MX33 * CS33;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT33)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT33));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall34	
 	glm::mat4 CT34 = glm::mat4(1.0f);
 	glm::mat4 MX34 = glm::mat4(1.0f);
 	glm::mat4 CS34 = glm::mat4(1.0f);
 	CS34 = glm::scale(CS34, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX34 = glm::translate(MX34, glm::vec3(41.0f, 0.0f, 12.0f)); //--- model 행렬에 이동 변환 적용
+	MX34 = glm::translate(MX34, glm::vec3(41.0f, 0.0f, 12.0f));
 	CT34 = MX34 * CS34;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT34)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT34));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall35	
 	glm::mat4 CT35 = glm::mat4(1.0f);
 	glm::mat4 MX35 = glm::mat4(1.0f);
 	glm::mat4 CS35 = glm::mat4(1.0f);
 	CS35 = glm::scale(CS35, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX35 = glm::translate(MX35, glm::vec3(45.0f, 0.0f, 16.0f)); //--- model 행렬에 이동 변환 적용
+	MX35 = glm::translate(MX35, glm::vec3(45.0f, 0.0f, 16.0f));
 	CT35 = MX35 * CS35;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT35)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT35));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall36	
 	glm::mat4 CT36 = glm::mat4(1.0f);
 	glm::mat4 MX36 = glm::mat4(1.0f);
 	glm::mat4 CS36 = glm::mat4(1.0f);
 	CS36 = glm::scale(CS36, glm::vec3(3.0f, 10.0f, 1.0f));
-	MX36 = glm::translate(MX36, glm::vec3(53.0f, 0.0f, 17.0f)); //--- model 행렬에 이동 변환 적용
+	MX36 = glm::translate(MX36, glm::vec3(53.0f, 0.0f, 17.0f));
 	CT36 = MX36 * CS36;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT36)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT36));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall37	
 	glm::mat4 CT37 = glm::mat4(1.0f);
 	glm::mat4 MX37 = glm::mat4(1.0f);
 	glm::mat4 CS37 = glm::mat4(1.0f);
 	CS37 = glm::scale(CS37, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX37 = glm::translate(MX37, glm::vec3(57.0f, 0.0f, 24.0f)); //--- model 행렬에 이동 변환 적용
+	MX37 = glm::translate(MX37, glm::vec3(57.0f, 0.0f, 24.0f));
 	CT37 = MX37 * CS37;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT37)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT37));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall38	
 	glm::mat4 CT38 = glm::mat4(1.0f);
 	glm::mat4 MX38 = glm::mat4(1.0f);
 	glm::mat4 CS38 = glm::mat4(1.0f);
 	CS38 = glm::scale(CS38, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX38 = glm::translate(MX38, glm::vec3(60.0f, 0.0f, 8.0f)); //--- model 행렬에 이동 변환 적용
+	MX38 = glm::translate(MX38, glm::vec3(60.0f, 0.0f, 8.0f));
 	CT38 = MX38 * CS38;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT38)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT38));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall39	
 	glm::mat4 CT39 = glm::mat4(1.0f);
 	glm::mat4 MX39 = glm::mat4(1.0f);
 	glm::mat4 CS39 = glm::mat4(1.0f);
 	CS39 = glm::scale(CS39, glm::vec3(4.0f, 10.0f, 1.0f));
-	MX39 = glm::translate(MX39, glm::vec3(61.0f, 0.0f, 20.0f)); //--- model 행렬에 이동 변환 적용
+	MX39 = glm::translate(MX39, glm::vec3(61.0f, 0.0f, 20.0f));
 	CT39 = MX39 * CS39;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT39)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT39));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall40	
 	glm::mat4 CT40 = glm::mat4(1.0f);
 	glm::mat4 MX40 = glm::mat4(1.0f);
 	glm::mat4 CS40 = glm::mat4(1.0f);
 	CS40 = glm::scale(CS40, glm::vec3(1.0f, 10.0f, 3.0f));
-	MX40 = glm::translate(MX40, glm::vec3(36.0f, 0.0f, 29.0f)); //--- model 행렬에 이동 변환 적용
+	MX40 = glm::translate(MX40, glm::vec3(36.0f, 0.0f, 29.0f));
 	CT40 = MX40 * CS40;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT40)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT40));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall41	
 	glm::mat4 CT41 = glm::mat4(1.0f);
 	glm::mat4 MX41 = glm::mat4(1.0f);
 	glm::mat4 CS41 = glm::mat4(1.0f);
 	CS41 = glm::scale(CS41, glm::vec3(1.0f, 10.0f, 4.0f));
-	MX41 = glm::translate(MX41, glm::vec3(39.0f, 0.0f, 1.0f)); //--- model 행렬에 이동 변환 적용
+	MX41 = glm::translate(MX41, glm::vec3(39.0f, 0.0f, 1.0f));
 	CT41 = MX41 * CS41;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT41)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT41));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall42	
 	glm::mat4 CT42 = glm::mat4(1.0f);
 	glm::mat4 MX42 = glm::mat4(1.0f);
 	glm::mat4 CS42 = glm::mat4(1.0f);
 	CS42 = glm::scale(CS42, glm::vec3(1.0f, 10.0f, 4.0f));
-	MX42 = glm::translate(MX42, glm::vec3(44.0f, 0.0f, 16.0f)); //--- model 행렬에 이동 변환 적용
+	MX42 = glm::translate(MX42, glm::vec3(44.0f, 0.0f, 16.0f));
 	CT42 = MX42 * CS42;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT42)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT42));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall43	
 	glm::mat4 CT43 = glm::mat4(1.0f);
 	glm::mat4 MX43 = glm::mat4(1.0f);
 	glm::mat4 CS43 = glm::mat4(1.0f);
 	CS43 = glm::scale(CS43, glm::vec3(1.0f, 10.0f, 4.0f));
-	MX43 = glm::translate(MX43, glm::vec3(44.0f, 0.0f, 25.0f)); //--- model 행렬에 이동 변환 적용
+	MX43 = glm::translate(MX43, glm::vec3(44.0f, 0.0f, 25.0f));
 	CT43 = MX43 * CS43;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT43)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT43));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall44	
 	glm::mat4 CT44 = glm::mat4(1.0f);
 	glm::mat4 MX44 = glm::mat4(1.0f);
 	glm::mat4 CS44 = glm::mat4(1.0f);
 	CS44 = glm::scale(CS44, glm::vec3(1.0f, 10.0f, 5.0f));
-	MX44 = glm::translate(MX44, glm::vec3(56.0f, 0.0f, 5.0f)); //--- model 행렬에 이동 변환 적용
+	MX44 = glm::translate(MX44, glm::vec3(56.0f, 0.0f, 5.0f));
 	CT44 = MX44 * CS44;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT44)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT44));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall45	
 	glm::mat4 CT45 = glm::mat4(1.0f);
 	glm::mat4 MX45 = glm::mat4(1.0f);
 	glm::mat4 CS45 = glm::mat4(1.0f);
 	CS45 = glm::scale(CS45, glm::vec3(1.0f, 10.0f, 3.0f));
-	MX45 = glm::translate(MX45, glm::vec3(56.0f, 0.0f, 29.0f)); //--- model 행렬에 이동 변환 적용
+	MX45 = glm::translate(MX45, glm::vec3(56.0f, 0.0f, 29.0f));
 	CT45 = MX45 * CS45;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT45)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT45));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall46	
 	glm::mat4 CT46 = glm::mat4(1.0f);
 	glm::mat4 MX46 = glm::mat4(1.0f);
 	glm::mat4 CS46 = glm::mat4(1.0f);
 	CS46 = glm::scale(CS46, glm::vec3(1.0f, 10.0f, 8.0f));
-	MX46 = glm::translate(MX46, glm::vec3(36.0f, 0.0f, 8.0f)); //--- model 행렬에 이동 변환 적용
+	MX46 = glm::translate(MX46, glm::vec3(36.0f, 0.0f, 8.0f));
 	CT46 = MX46 * CS46;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT46)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT46));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall47	
 	glm::mat4 CT47 = glm::mat4(1.0f);
 	glm::mat4 MX47 = glm::mat4(1.0f);
 	glm::mat4 CS47 = glm::mat4(1.0f);
 	CS47 = glm::scale(CS47, glm::vec3(1.0f, 10.0f, 8.0f));
-	MX47 = glm::translate(MX47, glm::vec3(40.0f, 0.0f, 12.0f)); //--- model 행렬에 이동 변환 적용
+	MX47 = glm::translate(MX47, glm::vec3(40.0f, 0.0f, 12.0f));
 	CT47 = MX47 * CS47;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT47)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT47));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall48	
 	glm::mat4 CT48 = glm::mat4(1.0f);
 	glm::mat4 MX48 = glm::mat4(1.0f);
 	glm::mat4 CS48 = glm::mat4(1.0f);
 	CS48 = glm::scale(CS48, glm::vec3(1.0f, 10.0f, 12.0f));
-	MX48 = glm::translate(MX48, glm::vec3(48.0f, 0.0f, 4.0f)); //--- model 행렬에 이동 변환 적용
+	MX48 = glm::translate(MX48, glm::vec3(48.0f, 0.0f, 4.0f));
 	CT48 = MX48 * CS48;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT48)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT48));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall49	
 	glm::mat4 CT49 = glm::mat4(1.0f);
 	glm::mat4 MX49 = glm::mat4(1.0f);
 	glm::mat4 CS49 = glm::mat4(1.0f);
 	CS49 = glm::scale(CS49, glm::vec3(1.0f, 10.0f, 8.0f));
-	MX49 = glm::translate(MX49, glm::vec3(52.0f, 0.0f, 17.0f)); //--- model 행렬에 이동 변환 적용
+	MX49 = glm::translate(MX49, glm::vec3(52.0f, 0.0f, 17.0f));
 	CT49 = MX49 * CS49;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT49)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT49));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall50	
 	glm::mat4 CT50 = glm::mat4(1.0f);
 	glm::mat4 MX50 = glm::mat4(1.0f);
 	glm::mat4 CS50 = glm::mat4(1.0f);
 	CS50 = glm::scale(CS50, glm::vec3(1.0f, 10.0f, 8.0f));
-	MX50 = glm::translate(MX50, glm::vec3(56.0f, 0.0f, 17.0f)); //--- model 행렬에 이동 변환 적용
+	MX50 = glm::translate(MX50, glm::vec3(56.0f, 0.0f, 17.0f));
 	CT50 = MX50 * CS50;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT50)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT50));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall51	
 	glm::mat4 CT51 = glm::mat4(1.0f);
 	glm::mat4 MX51 = glm::mat4(1.0f);
 	glm::mat4 CS51 = glm::mat4(1.0f);
 	CS51 = glm::scale(CS51, glm::vec3(1.0f, 10.0f, 9.0f));
-	MX51 = glm::translate(MX51, glm::vec3(52.0f, 0.0f, 4.0f)); //--- model 행렬에 이동 변환 적용
+	MX51 = glm::translate(MX51, glm::vec3(52.0f, 0.0f, 4.0f));
 	CT51 = MX51 * CS51;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT51)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT51));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall52	
 	glm::mat4 CT52 = glm::mat4(1.0f);
 	glm::mat4 MX52 = glm::mat4(1.0f);
 	glm::mat4 CS52 = glm::mat4(1.0f);
 	CS52 = glm::scale(CS52, glm::vec3(1.0f, 10.0f, 8.0f));
-	MX52 = glm::translate(MX52, glm::vec3(60.0f, 0.0f, 13.0f)); //--- model 행렬에 이동 변환 적용
+	MX52 = glm::translate(MX52, glm::vec3(60.0f, 0.0f, 13.0f));
 	CT52 = MX52 * CS52;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT52)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT52));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall53	
 	glm::mat4 CT53 = glm::mat4(1.0f);
 	glm::mat4 MX53 = glm::mat4(1.0f);
 	glm::mat4 CS53 = glm::mat4(1.0f);
 	CS53 = glm::scale(CS53, glm::vec3(1.0f, 10.0f, 17.0f));
-	MX53 = glm::translate(MX53, glm::vec3(64.0f, 0.0f, 0.0f)); //--- model 행렬에 이동 변환 적용
+	MX53 = glm::translate(MX53, glm::vec3(64.0f, 0.0f, 0.0f));
 	CT53 = MX53 * CS53;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT53)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT53));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//wall54	
 	glm::mat4 CT54 = glm::mat4(1.0f);
 	glm::mat4 MX54 = glm::mat4(1.0f);
 	glm::mat4 CS54 = glm::mat4(1.0f);
 	CS54 = glm::scale(CS54, glm::vec3(1.0f, 10.0f, 12.0f));
-	MX54 = glm::translate(MX54, glm::vec3(64.0f, 0.0f, 21.0f)); //--- model 행렬에 이동 변환 적용
+	MX54 = glm::translate(MX54, glm::vec3(64.0f, 0.0f, 21.0f));
 	CT54 = MX54 * CS54;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT54)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT54));
 	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	//floor55	
 	glm::mat4 CT55 = glm::mat4(1.0f);
 	glm::mat4 MX55 = glm::mat4(1.0f);
 	glm::mat4 CS55 = glm::mat4(1.0f);
 	CS55 = glm::scale(CS55, glm::vec3(65.0f, 1.0f, 33.0f));
-	MX55 = glm::translate(MX55, glm::vec3(0.0f, 0.0f, 0.0f)); //--- model 행렬에 이동 변환 적용
+	MX55 = glm::translate(MX55, glm::vec3(0.0f, 0.0f, 0.0f));
 	CT55 = MX55 * CS55;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT55)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT55));
 	glBindVertexArray(vao[2]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	colorLocation = glGetUniformLocation(s_program, "color");
+	glUniform3f(colorLocation, 0.5, 0.4, 0.4);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	/*
 	//roof56	
@@ -977,13 +911,12 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glm::mat4 MX56 = glm::mat4(1.0f);
 	glm::mat4 CS56 = glm::mat4(1.0f);
 	CS56 = glm::scale(CS56, glm::vec3(65.0f, 1.0f, 33.0f));
-	MX56 = glm::translate(MX56, glm::vec3(0.0f, 10.0f, 0.0f)); //--- model 행렬에 이동 변환 적용
+	MX56 = glm::translate(MX56, glm::vec3(0.0f, 10.0f, 0.0f));
 	CT56 = MX56 * CS56;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	//--- 버텍스 세이더에서 modelTransform 변수 위치 가져오기
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT56)); //--- modelTransform 변수에 변환 값 적용하기
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT56));
 	glBindVertexArray(vao[2]);
-	glDrawArrays(GL_TRIANGLES, 0, 36); //--- 도형 그리기
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 	*/
 
 	glutSwapBuffers(); // 화면에 출력하기
@@ -1036,18 +969,6 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	// 화면 사이즈 조절
 	width = 1000;
 	height = 1000;
-
-	for (int i = 0; i < 36; ++i) {
-		cubecolors[i][0] = 0.2f;
-		cubecolors[i][1] = 0.4f;
-		cubecolors[i][2] = 0.7f;
-	}
-
-	for (int i = 0; i < 36; ++i) {
-		floorcolors[i][0] = 0.5f;
-		floorcolors[i][1] = 0.4f;
-		floorcolors[i][2] = 0.4f;
-	}
 
 	//--- 윈도우 생성하기
 	glutInit(&argc, argv); // glut 초기화
