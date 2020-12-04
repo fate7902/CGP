@@ -75,7 +75,7 @@ GLfloat realX, realY, realZ; // 실제 좌표 값
 GLfloat realbody = 0.3f; // 카메라가 주인공이기에 가상의 두께 값
 GLboolean camera_set = GL_FALSE;
 GLboolean col = GL_FALSE; // 충돌 여부판단
-GLuint state = 0; // 0 - 정지 1 - 앞 2 - 뒤 3 - 좌 4 - 우
+GLuint ws_state = 0, ad_state = 0; // 0 - 정지 1 - 앞/좌 2 - 뒤/우
 GLuint rotate_state = 0; // 0 - 정지 1 - 좌 2 - 우
 
 // 여기에 도형 좌표 해주세요
@@ -1156,16 +1156,16 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 	switch (key)
 	{
 	case 'w' | 'W':
-		state = 1;
+		ws_state = 1;
 		break;
 	case 'a' | 'A':
-		state = 3;
+		ad_state = 1;
 		break;
 	case 's' | 'S':
-		state = 2;
+		ws_state = 2;
 		break;
 	case 'd' | 'D':
-		state = 4;
+		ad_state = 2;
 		break;
 	case 'q' | 'Q': // 왼쪽 회전
 		rotate_state = 1;
@@ -1197,10 +1197,12 @@ GLvoid KeyUp(unsigned char key, int x, int y) {
 	switch (key)
 	{
 	case 'w' | 'W':
-	case 'a' | 'A':
 	case 's' | 'S':
+		ws_state = 0;
+		break;
+	case 'a' | 'A':	
 	case 'd' | 'D':
-		state = 0;
+		ad_state = 0;
 		break;
 	case 'q' | 'Q':
 	case 'e' | 'E':
@@ -1214,9 +1216,9 @@ GLvoid KeyUp(unsigned char key, int x, int y) {
 
 GLvoid Timer(int value) {
 	// 플레이어 이동
-	if (state != 0) 
+	if (ws_state != 0)
 	{
-		switch (state)
+		switch (ws_state)
 		{
 		case 1: // 앞
 			for (int i = 0; i < MAX_WALL; i++)
@@ -1269,11 +1271,20 @@ GLvoid Timer(int value) {
 				col = GL_FALSE;
 			}
 			break;
-		case 3: // 좌
+		default:
+			break;
+		}
+	}
+
+	if (ad_state != 0)
+	{
+		switch (ad_state)
+		{
+		case 1: // 좌
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ - (ds * cos(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * cos(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
-					realX - (ds * sin(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * sin(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
+				if (realZ - (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
+					realX - (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
 				{
 					col = GL_TRUE;
 				}
@@ -1284,10 +1295,10 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dz -= (ds * cos(GetRadian(90 - rotate)));
-				dx += (ds * sin(GetRadian(90 - rotate)));
-				realZ -= (ds * cos(GetRadian(90 - rotate)));
-				realX -= (ds * sin(GetRadian(90 - rotate)));
+				dz -= (ds * sin(GetRadian(-rotate)));
+				dx += (ds * cos(GetRadian(-rotate)));
+				realZ -= (ds * sin(GetRadian(-rotate)));
+				realX -= (ds * cos(GetRadian(-rotate)));
 				col = GL_FALSE;
 			}
 			else
@@ -1295,11 +1306,11 @@ GLvoid Timer(int value) {
 				col = GL_FALSE;
 			}
 			break;
-		case 4: // 우
+		case 2: // 우
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ + (ds * cos(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * cos(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
-					realX + (ds * sin(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * sin(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
+				if (realZ + (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
+					realX + (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
 				{
 					col = GL_TRUE;
 				}
@@ -1310,10 +1321,10 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dz += (ds * cos(GetRadian(90 - rotate)));
-				dx -= (ds * sin(GetRadian(90 - rotate)));
-				realZ += (ds * cos(GetRadian(90 - rotate)));
-				realX += (ds * sin(GetRadian(90 - rotate)));
+				dz += (ds * sin(GetRadian(-rotate)));
+				dx -= (ds * cos(GetRadian(-rotate)));
+				realZ += (ds * sin(GetRadian(-rotate)));
+				realX += (ds * cos(GetRadian(-rotate)));
 				col = GL_FALSE;
 			}
 			else
