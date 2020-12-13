@@ -18,6 +18,7 @@
 #define MAX_WALL 54
 #define MAX_ZOMBIE 34
 #define MAX_ZOMBIEMOVE 100
+#define MAX_DISTANCE 16
 
 GLuint vertexShader;
 GLuint fragmentShader;
@@ -1467,6 +1468,70 @@ GLvoid Timer(int value) {
 			}
 			break;
 		case 4: // 초기 위치로 복귀
+			distance = pow((zombieset[i].posX - zombie[i].posX), 2) + pow((zombieset[i].posZ - zombie[i].posZ), 2);
+			if (distance <= 1)
+			{
+				zombie[i].posX = zombieset[i].posX;
+				zombie[i].posZ = zombieset[i].posZ;
+				zombie[i].concept_state = zombieset[i].concept_state;
+				zombie[i].state = zombieset[i].state;
+				switch (zombie[i].state)
+				{
+				case 1:
+					zombie[i].state_rotation = 180.f;
+					break;
+				case 2:
+					zombie[i].state_rotation = -90.f;
+					break;
+				case 3:
+					zombie[i].state_rotation = 0.f;
+					break;
+				case 4:
+					zombie[i].state_rotation = 90.f;
+					break;
+				}
+			}
+			else
+			{
+				if (pow((zombieset[i].posX - zombie[i].posX), 2) > pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posX > zombie[i].posX)
+				{
+					zombie[i].state = 4;
+					zombie[i].state_rotation = 90.f;
+				}
+				else if (pow((zombieset[i].posX - zombie[i].posX), 2) > pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posX < zombie[i].posX)
+				{
+					zombie[i].state = 2;
+					zombie[i].state_rotation = -90.f;
+				}
+				else if (pow((zombieset[i].posX - zombie[i].posX), 2) < pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posZ > zombie[i].posZ)
+				{
+					zombie[i].state = 3;
+					zombie[i].state_rotation = 0.f;
+				}
+				else if (pow((zombieset[i].posX - zombie[i].posX), 2) < pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posZ < zombie[i].posZ)
+				{
+					zombie[i].state = 1;
+					zombie[i].state_rotation = 180.f;
+				}
+
+				if (zombieset[i].posX > zombie[i].posX + zombie[i].ds)
+				{
+					zombie[i].posX += zombie[i].ds;
+				}
+				else if (zombieset[i].posX < zombie[i].posX - zombie[i].ds)
+				{
+					zombie[i].posX -= zombie[i].ds;
+				}
+
+				if (zombieset[i].posZ > zombie[i].posZ + zombie[i].ds)
+				{
+					zombie[i].posZ += zombie[i].ds;
+				}
+				else if (zombieset[i].posZ < zombie[i].posZ - zombie[i].ds)
+				{
+					zombie[i].posZ -= zombie[i].ds;
+				}
+			}
 			break;
 		}
 
@@ -1485,11 +1550,11 @@ GLvoid Timer(int value) {
 		{
 			printf("realX : %f\trealZ : %f\tzombieX : %f\tzombieZ : %f\tdistance : %f\n", realZ, realX, zombie[i].posX, zombie[i].posZ,distance);			
 		}*/
-		if (distance <= 9 && zombie[i].concept_state != 3)
+		if (distance <= MAX_DISTANCE && zombie[i].concept_state != 3)
 		{
 			zombie[i].concept_state = 3;
 		}
-		else if(distance > 9 && zombie[i].concept_state == 3)
+		else if(distance > MAX_DISTANCE && zombie[i].concept_state == 3)
 		{
 			zombie[i].concept_state = 4;
 		}
