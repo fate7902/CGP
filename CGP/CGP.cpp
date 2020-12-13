@@ -94,6 +94,7 @@ GLfloat ds = 0.1f; // 이동크기값
 GLfloat posX = 0.f, posY = 2.f, posZ = 0.f; // 초기 생성 위치 값
 GLfloat realX, realY, realZ; // 실제 좌표 값
 GLfloat realbody = 0.3f; // 카메라가 주인공이기에 가상의 두께 값
+GLfloat distance; // 좀비와 플레이어의 거리
 GLboolean camera_set = GL_FALSE;
 GLboolean col = GL_FALSE; // 충돌 여부판단
 GLuint ws_state = 0, ad_state = 0; // 0 - 정지 1 - 앞/좌 2 - 뒤/우
@@ -320,7 +321,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	else // 주인공 시점
 	{
 		rotatePos = glm::rotate(rotatePos, glm::radians(rotate), glm::vec3(0.0f, 1.0f, 0.0f));
-		transPos = glm::translate(transPos, glm::vec3(dx, dy, dz));
+		transPos = glm::translate(transPos, glm::vec3(-realX, dy, dz));
 		view = glm::lookAt(cameraPos2, cameraTarget2, cameraUp2);
 		view = rotatePos * transPos * view;
 	}	
@@ -1357,7 +1358,7 @@ GLvoid Timer(int value) {
 			break;
 		}
 	}
-
+	
 	if (rotate_state != 0)
 	{
 		switch (rotate_state)
@@ -1426,14 +1427,71 @@ GLvoid Timer(int value) {
 			}
 			break;
 		case 3: // 추적
-			break;		
+			if (pow((realZ - zombie[i].posX), 2) > pow((realX - zombie[i].posZ), 2) && realZ > zombie[i].posX)
+			{
+				zombie[i].state = 4;
+				zombie[i].state_rotation = 90.f;
+			}
+			else if (pow((realZ - zombie[i].posX), 2) > pow((realX - zombie[i].posZ), 2) && realZ < zombie[i].posX)
+			{
+				zombie[i].state = 2;
+				zombie[i].state_rotation = -90.f;
+			}
+			else if (pow((realZ - zombie[i].posX), 2) < pow((realX - zombie[i].posZ), 2) && realX > zombie[i].posZ)
+			{
+				zombie[i].state = 3;
+				zombie[i].state_rotation = 0.f;
+			}
+			else if (pow((realZ - zombie[i].posX), 2) < pow((realX - zombie[i].posZ), 2) && realX < zombie[i].posZ)
+			{
+				zombie[i].state = 1;
+				zombie[i].state_rotation = 180.f;
+			}
+
+			if (realZ > zombie[i].posX + zombie[i].ds)
+			{
+				zombie[i].posX += zombie[i].ds;
+			}
+			else if (realZ < zombie[i].posX - zombie[i].ds)
+			{
+				zombie[i].posX -= zombie[i].ds;
+			}
+
+			if (realX > zombie[i].posZ + zombie[i].ds)
+			{
+				zombie[i].posZ += zombie[i].ds;
+			}
+			else if (realX < zombie[i].posZ - zombie[i].ds)
+			{
+				zombie[i].posZ -= zombie[i].ds;
+			}
+			break;
+		case 4: // 초기 위치로 복귀
+			break;
 		}
+
+		// 팔다리 회전애니메이션
 		zombie[i].mr += zombie[i].dmr;
 		if (zombie[i].mr >= 45.f) {
 			zombie[i].dmr *= -1.f;
 		}
 		else if (zombie[i].mr <= -45.f) {
 			zombie[i].dmr *= -1.f;
+		}
+
+		// 유저와의 거리 측정
+		distance = pow((realZ - zombie[i].posX), 2) + pow((realX - zombie[i].posZ), 2);
+		/*if (i == 1)
+		{
+			printf("realX : %f\trealZ : %f\tzombieX : %f\tzombieZ : %f\tdistance : %f\n", realZ, realX, zombie[i].posX, zombie[i].posZ,distance);			
+		}*/
+		if (distance <= 9 && zombie[i].concept_state != 3)
+		{
+			zombie[i].concept_state = 3;
+		}
+		else if(distance > 9 && zombie[i].concept_state == 3)
+		{
+			zombie[i].concept_state = 4;
 		}
 	}
 
