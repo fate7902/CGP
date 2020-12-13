@@ -16,7 +16,8 @@
 // 정의는 이곳에 해주세요
 #define PI 3.141592
 #define MAX_WALL 54
-#define MAX_ZOMBIE 17
+#define MAX_ZOMBIE 34
+#define MAX_ZOMBIEMOVE 100
 
 GLuint vertexShader;
 GLuint fragmentShader;
@@ -36,6 +37,13 @@ struct Collision
 	GLfloat bottom_z, top_z;
 };
 
+struct Zombieset
+{
+	GLfloat posZ, posY, posX;
+	GLint concept_state; // 1 - 정지 2 - 배회 3 - 추적
+	GLint state; // 1 - 앞 2 - 왼 3 - 뒤 4 - 오
+};
+
 struct Zombie
 {
 	GLfloat posX, posY, posZ;
@@ -49,7 +57,8 @@ struct Zombie
 };
 
 struct Collision collision[MAX_WALL] =
-{ {5.f,6.f,0.f,32.f},{9.f,26.f,0.f,1.f},{25.f,26.f,0.f,32.f},{6.f,22.f,16.f,17.f},
+{ 
+	{5.f,6.f,0.f,32.f},{9.f,26.f,0.f,1.f},{25.f,26.f,0.f,32.f},{6.f,22.f,16.f,17.f},
 	{9.f,25.f,20.f,21.f},{14.f,22.f,4.f,5.f},{17.f,25.f,12.f,13.f},{9.f,17.f,28.f,29.f},
 	{9.f,13.f,8.f,9.f},{18.f,22.f,24.f,25.f},{21.f,25.f,28.f,29.f},{1.f,16.f,32.f,33.f},
 	{20.f,32.f,32.f,33.f},{0.f,1.f,32.f,64.f},{32.f,33.f,32.f,64.f},{13.f,14.f,4.f,16.f},
@@ -63,6 +72,18 @@ struct Collision collision[MAX_WALL] =
 	{29.f,32.f,56.f,57.f},{8.f,16.f,36.f,37.f},{12.f,20.f,40.f,41.f},{4.f,16.f,48.f,49.f},
 	{17.f,25.f,52.f,53.f},{17.f,25.f,56.f,57.f},{4.f,13.f,52.f,53.f},{13.f,21.f,60.f,61.f},
 	{0.f,17.f,64.f,65.f},{21.f,33.f,64.f,65.f}
+};
+struct Zombieset zombieset[MAX_ZOMBIE] =
+{
+	{14.5f,1.f,2.f,1,1},{14.5f,1.f,3.f,1,1},{23.f,1.f,16.5f,1,2},{24.f,1.f,16.5f,1,2},
+	{7.5f,1.f,18.f,1,3},{7.5f,1.f,19.f,1,3},{15.f,1.f,22.5f,1,4},{16.f,1.f,22.5f,1,4},
+	{19.5f,1.f,26.f,1,3},{19.5f,1.f,27.f,1,3},{4.5f,1.f,34.f,2,3},{4.5f,1.f,35.f,2,3},
+	{24.5f,1.f,34.f,1,1},{24.5f,1.f,35.f,1,1},{20.5f,1.f,42.f,1,1},{20.5f,1.f,43.f,1,1},
+	{6.f,1.f,43.5f,1,2},{7.f,1.f,43.5f,1,2},{12.5f,1.f,46.f,1,1},{12.5f,1.f,47.f,1,1},
+	{28.5f,1.f,46.f,1,1},{28.5f,1.f,47.f,1,1},{15.5f,1.f,50.f,1,4},{15.5f,1.f,51.f,1,4},
+	{24.5f,1.f,50.f,1,1},{24.5f,1.f,51.f,1,1},{2.f,1.f,52.5f,2,2},{3.f,1.f,52.5f,2,2},
+	{11.f,1.f,56.5f,1,4},{12.f,1.f,56.5f,1,4},{13.5f,1.f,62.5f,1,1},{13.5f,1.f,63.5f,1,1},
+	{24.5f,1.f,62.5f,2,3},{24.5f,1.f,63.5f,2,3}
 };
 struct Zombie zombie[MAX_ZOMBIE] = { 0, };
 
@@ -276,8 +297,8 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 
 	// 카메라 위치
 	// 상공
-	glm::vec3 cameraPos = glm::vec3(0.0f, 50.0f, 0.0f);
-	glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); // 카메라가 바라보는 곳	
+	glm::vec3 cameraPos = glm::vec3(0.0f, 40.0f, 0.0f);
+	glm::vec3 cameraTarget = glm::vec3(realX, realY, realZ); // 카메라가 바라보는 곳	
 	glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget); //--- 카메라 방향 벡터
 	glm::vec3 up = glm::vec3(0.0f, 0.0f,-1.0f);
 	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
@@ -292,7 +313,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glm::mat4 rotatePos = glm::mat4(1.0f);
 	if (!camera_set) // 상공시점
 	{
-		transPos = glm::translate(transPos, glm::vec3(dx, dy, dz));
+		transPos = glm::translate(transPos, glm::vec3(-realX, realY, realZ));
 		view = glm::lookAt(cameraPos, cameraDirection, cameraUp);
 		view = transPos * view;
 	}
@@ -1365,180 +1386,40 @@ GLvoid Timer(int value) {
 			case 1:
 				zombie[i].posZ -= zombie[i].ds;
 				zombie[i].count += 1;
-				if (zombie[i].posZ < 0.f)
+				if (zombie[i].count >= MAX_ZOMBIEMOVE)
 				{
-					switch (rand() % 3 + 1)
-					{
-					case 1:
-						zombie[i].state = 2;
-						zombie[i].state_rotation = -90.f;
-						break;
-					case 2:
-						zombie[i].state = 3;
-						zombie[i].state_rotation = 0.f;
-						break;
-					case 3:
-						zombie[i].state = 4;
-						zombie[i].state_rotation = 90.f;
-						break;
-					}
-				}
-				else if (zombie[i].count >= 40)
-				{
-					switch (rand() % 4 + 1)
-					{
-					case 1:
-						zombie[i].state = 1;
-						zombie[i].state_rotation = 180.f;
-						break;
-					case 2:
-						zombie[i].state = 2;
-						zombie[i].state_rotation = -90.f;
-						break;
-					case 3:
-						zombie[i].state = 3;
-						zombie[i].state_rotation = 0.f;
-						break;
-					case 4:
-						zombie[i].state = 4;
-						zombie[i].state_rotation = 90.f;
-						break;
-					}
+					zombie[i].state = 3;
+					zombie[i].state_rotation = 0.f;
 					zombie[i].count = 0;
 				}
 				break;
 			case 2:
 				zombie[i].posX -= zombie[i].ds;
 				zombie[i].count += 1;
-				if (zombie[i].posX < 0.f)
+				if (zombie[i].count >= MAX_ZOMBIEMOVE)
 				{
-					switch (rand() % 3 + 1)
-					{
-					case 1:
-						zombie[i].state = 1;
-						zombie[i].state_rotation = 180.f;
-						break;
-					case 2:
-						zombie[i].state = 3;
-						zombie[i].state_rotation = 0.f;
-						break;
-					case 3:
-						zombie[i].state = 4;
-						zombie[i].state_rotation = 90.f;
-						break;
-					}
-				}
-				else if (zombie[i].count >= 40)
-				{
-					switch (rand() % 4 + 1)
-					{
-					case 1:
-						zombie[i].state = 1;
-						zombie[i].state_rotation = 180.f;
-						break;
-					case 2:
-						zombie[i].state = 2;
-						zombie[i].state_rotation = -90.f;
-						break;
-					case 3:
-						zombie[i].state = 3;
-						zombie[i].state_rotation = 0.f;
-						break;
-					case 4:
-						zombie[i].state = 4;
-						zombie[i].state_rotation = 90.f;
-						break;
-					}
+					zombie[i].state = 4;
+					zombie[i].state_rotation = 90.f;
 					zombie[i].count = 0;
-				}
+				}				
 				break;
 			case 3:
 				zombie[i].posZ += zombie[i].ds;
 				zombie[i].count += 1;
-				if (zombie[i].posZ > 65.f)
+				if (zombie[i].count >= MAX_ZOMBIEMOVE)
 				{
-					switch (rand() % 3 + 1)
-					{
-					case 1:
-						zombie[i].state = 1;
-						zombie[i].state_rotation = 180.f;
-						break;
-					case 2:
-						zombie[i].state = 2;
-						zombie[i].state_rotation = -90.f;
-						break;
-					case 3:
-						zombie[i].state = 4;
-						zombie[i].state_rotation = 90.f;
-						break;
-					}
-				}
-				else if (zombie[i].count >= 40)
-				{
-					switch (rand() % 4 + 1)
-					{
-					case 1:
-						zombie[i].state = 1;
-						zombie[i].state_rotation = 180.f;
-						break;
-					case 2:
-						zombie[i].state = 2;
-						zombie[i].state_rotation = -90.f;
-						break;
-					case 3:
-						zombie[i].state = 3;
-						zombie[i].state_rotation = 0.f;
-						break;
-					case 4:
-						zombie[i].state = 4;
-						zombie[i].state_rotation = 90.f;
-						break;
-					}
+					zombie[i].state = 1;
+					zombie[i].state_rotation = 180.f;
 					zombie[i].count = 0;
 				}
 				break;
 			case 4:
 				zombie[i].posX += zombie[i].ds;
 				zombie[i].count += 1;
-				if (zombie[i].posX > 33.f)
+				if (zombie[i].count >= MAX_ZOMBIEMOVE)
 				{
-					switch (rand() % 3 + 1)
-					{
-					case 1:
-						zombie[i].state = 1;
-						zombie[i].state_rotation = 180.f;
-						break;
-					case 2:
-						zombie[i].state = 2;
-						zombie[i].state_rotation = -90.f;
-						break;
-					case 3:
-						zombie[i].state = 3;
-						zombie[i].state_rotation = 0.f;
-						break;
-					}
-				}
-				else if (zombie[i].count >= 40)
-				{
-					switch (rand() % 4 + 1)
-					{
-					case 1:
-						zombie[i].state = 1;
-						zombie[i].state_rotation = 180.f;
-						break;
-					case 2:
-						zombie[i].state = 2;
-						zombie[i].state_rotation = -90.f;
-						break;
-					case 3:
-						zombie[i].state = 3;
-						zombie[i].state_rotation = 0.f;
-						break;
-					case 4:
-						zombie[i].state = 4;
-						zombie[i].state_rotation = 90.f;
-						break;
-					}
+					zombie[i].state = 2;
+					zombie[i].state_rotation = -90.f;
 					zombie[i].count = 0;
 				}
 				break;
@@ -1577,14 +1458,14 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	for (int i = 0; i < MAX_ZOMBIE; i++)
 	{
 		zombie[i].ds = 0.05f;
-		zombie[i].mr = 0.f;
+		zombie[i].mr = (rand() % 16) * 3.f;
 		zombie[i].dmr = 3.f;
-		zombie[i].concept_state = 2;
+		zombie[i].concept_state = zombieset[i].concept_state;
 		zombie[i].count = 0;
-		zombie[i].posX = rand() % 32 + 1;
-		zombie[i].posY = 1.0f;
-		zombie[i].posZ = rand() % 64 + 1;
-		zombie[i].state = rand() % 4 + 1;
+		zombie[i].posX = zombieset[i].posX;
+		zombie[i].posY = zombieset[i].posY;
+		zombie[i].posZ = zombieset[i].posZ;
+		zombie[i].state = zombieset[i].state;
 		switch (zombie[i].state)
 		{
 		case 1:
