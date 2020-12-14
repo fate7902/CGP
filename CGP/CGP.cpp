@@ -15,7 +15,7 @@
 
 // 정의는 이곳에 해주세요
 #define PI 3.141592
-#define MAX_WALL 56
+#define MAX_WALL 57
 #define MAX_ZOMBIE 34
 #define MAX_ZOMBIEMOVE 100
 #define MAX_PARTICLE 25
@@ -116,7 +116,8 @@ struct Collision collision[MAX_WALL] =
 	{1.f,5.f,39.f,40.f,GL_TRUE},{16.f,20.f,44.f,45.f,GL_TRUE},{25.f,29.f,44.f,45.f,GL_TRUE},{5.f,10.f,56.f,57.f,GL_TRUE},
 	{29.f,32.f,56.f,57.f,GL_TRUE},{8.f,16.f,36.f,37.f,GL_TRUE},{12.f,20.f,40.f,41.f,GL_TRUE},{4.f,16.f,48.f,49.f,GL_TRUE},
 	{17.f,25.f,52.f,53.f,GL_TRUE},{17.f,25.f,56.f,57.f,GL_TRUE},{4.f,13.f,52.f,53.f,GL_TRUE},{13.f,21.f,60.f,61.f,GL_TRUE},
-	{0.f,17.f,64.f,65.f,GL_TRUE},{21.f,33.f,64.f,65.f,GL_TRUE},{17.f,20.f,32.f,33.f,GL_TRUE},{17.f,20.f,64.f,65.f,GL_TRUE}
+	{0.f,17.f,64.f,65.f,GL_TRUE},{21.f,33.f,64.f,65.f,GL_TRUE},{17.f,20.f,32.f,33.f,GL_TRUE},{17.f,20.f,64.f,65.f,GL_TRUE},
+	{6.f,9.f,0.f,1.f,GL_TRUE}
 };
 struct Zombieset zombieset[MAX_ZOMBIE] =
 {
@@ -145,7 +146,7 @@ GLfloat posX = 0.f, posY = 2.f, posZ = 0.f; // 초기 생성 위치 값
 GLfloat realX, realY, realZ; // 실제 좌표 값
 GLfloat realbody = 0.3f; // 카메라가 주인공이기에 가상의 두께 값
 GLfloat distance; // 좀비와 플레이어의 거리
-GLboolean camera_set = GL_FALSE;
+GLboolean camera_set = GL_TRUE;
 GLboolean col = GL_FALSE; // 충돌 여부판단
 GLint ws_state = 0, ad_state = 0; // 0 - 정지 1 - 앞/좌 2 - 뒤/우
 GLint rotate_state = 0; // 0 - 정지 1 - 좌 2 - 우
@@ -409,27 +410,19 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	pTransform = glm::perspective(glm::radians(120.0f), (float)g_window_w / (float)g_window_h, 0.1f, 50.0f);
 	glUniformMatrix4fv(projecLocation, 1, GL_FALSE, &pTransform[0][0]);
 
-	// 축 그리기
-	glm::mat4 TT = glm::mat4(1.0f);
-	unsigned int modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
-	unsigned int colorLocation = glGetUniformLocation(s_program, "color"); // 색상인자 매칭
-	glUniform3f(colorLocation, 1.0, 0.0, 0.0); // 색상값 주기
-	glBindVertexArray(vao[0]);
-	glDrawArrays(GL_LINES, 0, 6);
-
 	//큐브 그리기
 	// wall1
+	glm::mat4 TT = glm::mat4(1.0f);
 	glm::mat4 CT = glm::mat4(1.0f);
 	glm::mat4 MX = glm::mat4(1.0f);
 	glm::mat4 CS = glm::mat4(1.0f);
 	CS = glm::scale(CS, glm::vec3(32.0f, 6.0f, 1.0));
 	MX = glm::translate(MX, glm::vec3(0.0f, 0.0f, 5.0f));
 	CT = MX * CS;
-	modelLocation = glGetUniformLocation(s_program, "modelTransform");
+	unsigned int modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
 	glBindVertexArray(vao[1]);
-	colorLocation = glGetUniformLocation(s_program, "color");
+	unsigned int colorLocation = glGetUniformLocation(s_program, "color");
 	glUniform3f(colorLocation, 0.3, 0.3, 0.3);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -1614,6 +1607,7 @@ GLvoid Timer(int value) {
 													break;
 												}
 											}
+											k = 2;
 										}
 									}
 								}
@@ -1661,7 +1655,7 @@ GLvoid Timer(int value) {
 						if (realZ + (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
 							realX + (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 						{
-							if (i == MAX_WALL - 1)
+							if (i == MAX_WALL - 2)
 							{
 								life = -1;
 							}
@@ -1691,7 +1685,7 @@ GLvoid Timer(int value) {
 						if (realZ - (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
 							realX - (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 						{
-							if (i == MAX_WALL - 1)
+							if (i == MAX_WALL - 2)
 							{
 								life = -1;
 							}
@@ -1731,7 +1725,7 @@ GLvoid Timer(int value) {
 						if (realZ - (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
 							realX - (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
 						{
-							if (i == MAX_WALL - 1)
+							if (i == MAX_WALL - 2)
 							{
 								life = -1;
 							}
@@ -1762,7 +1756,7 @@ GLvoid Timer(int value) {
 						if (realZ + (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
 							realX + (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
 						{
-							if (i == MAX_WALL - 1)
+							if (i == MAX_WALL - 2)
 							{
 								life = -1;
 							}
@@ -2116,6 +2110,8 @@ GLvoid Timer(int value) {
 		realX = posX;
 		realY = posY;
 		realZ = posZ;
+		realX = 7.f;
+		realZ = 2.f;
 	}
 	
 	glutPostRedisplay();
@@ -2129,8 +2125,8 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	printf("플레이어 시점에서만 위치이동 가능\n");
 	printf("게임 클리어 및 게임 오버시 자동 재시작\n");
 	printf("wasd/WASD - 앞뒤좌우\n");
-	printf("q/Q - 좌측 회전\te/E - 우측 회전\n");
-	printf("j/J(마우스 좌클릭) - 공격\n");
+	printf("q/Q(화면 좌측 우클릭) - 좌측 회전\te/E(화면 우측 우클릭) - 우측 회전\n");
+	printf("j/J(좌클릭) - 공격\n");
 	printf("t/T - 시점 변화(현재 위치 상공뷰)\n");
 	printf("p/P - 재시작\tg/G - 종료\n");
 
@@ -2191,6 +2187,8 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	realX = posX;
 	realY = posY;
 	realZ = posZ;
+	realX = 7.f;
+	realZ = 2.f;
 
 	//--- 윈도우 생성하기
 	glutInit(&argc, argv); // glut 초기화
