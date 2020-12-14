@@ -18,6 +18,7 @@
 #define MAX_WALL 56
 #define MAX_ZOMBIE 34
 #define MAX_ZOMBIEMOVE 100
+#define MAX_PARTICLE 25
 #define MAX_DISTANCE 16
 #define MAX_ATTACK 5
 #define MAX_ITEM 11
@@ -41,6 +42,15 @@ struct Collision
 	GLfloat left_x, right_x;
 	GLfloat bottom_z, top_z;
 	GLboolean draw; // 그릴지 여부
+};
+
+struct Particle
+{
+	GLfloat posX, posY, posZ;
+	GLfloat dx, dy, dz; // 움직일 거리
+	GLfloat r, g, b;
+	GLint count; // 20시 삭제
+	GLboolean draw;
 };
 
 struct Item
@@ -82,6 +92,7 @@ struct Zombie
 };
 
 struct Sword sword[MAX_ATTACK] = { 0, };
+struct Particle particle[2][MAX_PARTICLE] = { 0, };
 struct Collision collision[MAX_WALL] =
 { 
 	{5.f,6.f,0.f,32.f,GL_TRUE},{9.f,26.f,0.f,1.f,GL_TRUE},{25.f,26.f,0.f,32.f,GL_TRUE},{6.f,22.f,16.f,17.f,GL_TRUE},
@@ -1357,6 +1368,39 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		}
 	}
 
+	// 파티클 그리기
+	for (int i = 0; i < 2; i++)
+	{
+		if (particle[i][0].draw)
+		{
+			for (int j = 0; j < MAX_PARTICLE; j++)
+			{
+				colorLocation = glGetUniformLocation(s_program, "color");
+				glUniform3f(colorLocation, particle[i][j].r, particle[i][j].g, particle[i][j].b);
+				TT = glm::mat4(1.0f);
+				TS = glm::mat4(1.0f);
+				Ty = glm::mat4(1.0f);
+				TM = glm::mat4(1.0f);
+				TM = glm::translate(TM, glm::vec3(particle[i][j].posX, particle[i][j].posY, particle[i][j].posZ));
+				Ty = glm::translate(Ty, glm::vec3(0.0f, 1.f, 0.0f));
+				TS = glm::scale(TS, glm::vec3(0.05f, 0.05f, 0.05f));
+				TT = TM * Ty * TS;
+				modelLocation = glGetUniformLocation(s_program, "modelTransform");
+				glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+				glBindVertexArray(vao[2]);
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+				particle[i][j].posX += particle[i][j].dx;
+				particle[i][j].posY += particle[i][j].dy;
+				particle[i][j].posZ += particle[i][j].dz;
+				particle[i][j].count--;
+				if (particle[i][j].count <= 0)
+				{
+					particle[i][j].draw = GL_FALSE;
+				}
+			}
+		}
+	}
+
 	glutSwapBuffers(); // 화면에 출력하기
 }
 
@@ -1507,16 +1551,54 @@ GLvoid Timer(int value) {
 					//충돌 처리 공간
 					for (int j = 0; j < MAX_ZOMBIE; j++)
 					{
-						distance = pow(((sword[i].posX + 2.f) - zombie[j].posX), 2) + pow((sword[i].posZ - zombie[j].posZ), 2);
-						if (distance <= 1)
+						if (zombie[j].draw)
 						{
-							zombie[j].life -= power;
-							if (zombie[j].life <= 0)
+							distance = pow(((sword[i].posX + 2.f) - zombie[j].posX), 2) + pow((sword[i].posZ - zombie[j].posZ), 2);
+							if (distance <= 1)
 							{
-								zombie[j].draw = GL_FALSE;
+								zombie[j].life -= power;
+								if (zombie[j].life <= 0)
+								{
+									zombie[j].draw = GL_FALSE;
+									for (int k = 0; k < 2; k++)
+									{
+										if (!particle[k][0].draw)
+										{
+											for (int l = 0; l < MAX_PARTICLE; l++)
+											{
+												particle[k][l].draw = GL_TRUE;
+												particle[k][l].count = 20;
+												particle[k][l].posX = zombie[j].posX;
+												particle[k][l].posY = zombie[j].posY;
+												particle[k][l].posZ = zombie[j].posZ;
+												particle[k][l].dx = (rand() % 2 == 0) ? rand() % 11 * 0.005f : rand() % 11 * -0.005f;
+												particle[k][l].dy = rand() % 11 * 0.005f;
+												particle[k][l].dz = (rand() % 2 == 0) ? rand() % 11 * 0.005f : rand() % 11 * -0.005f;
+												switch (rand() % 3)
+												{
+												case 0:
+													particle[k][l].r = 1.f;
+													particle[k][l].g = 0.f;
+													particle[k][l].b = 0.f;
+													break;
+												case 1:
+													particle[k][l].r = 1.f;
+													particle[k][l].g = 1.f;
+													particle[k][l].b = 0.f;
+													break;
+												case 2:
+													particle[k][l].r = 0.5f;
+													particle[k][l].g = 0.5f;
+													particle[k][l].b = 0.5f;
+													break;
+												}
+											}
+										}
+									}
+								}
+								j = MAX_ZOMBIE;
+								sword[i].temp_atk = 25;
 							}
-							j = MAX_ZOMBIE;
-							sword[i].temp_atk = 25;
 						}
 					}
 
@@ -1558,7 +1640,7 @@ GLvoid Timer(int value) {
 						if (realZ + (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
 							realX + (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 						{
-							if (i = MAX_WALL - 1)
+							if (i == MAX_WALL - 1)
 							{
 								life = -1;
 							}
@@ -1588,7 +1670,7 @@ GLvoid Timer(int value) {
 						if (realZ - (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
 							realX - (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 						{
-							if (i = MAX_WALL - 1)
+							if (i == MAX_WALL - 1)
 							{
 								life = -1;
 							}
@@ -1628,7 +1710,7 @@ GLvoid Timer(int value) {
 						if (realZ - (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
 							realX - (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
 						{
-							if (i = MAX_WALL - 1)
+							if (i == MAX_WALL - 1)
 							{
 								life = -1;
 							}
@@ -1659,7 +1741,7 @@ GLvoid Timer(int value) {
 						if (realZ + (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
 							realX + (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
 						{
-							if (i = MAX_WALL - 1)
+							if (i == MAX_WALL - 1)
 							{
 								life = -1;
 							}
@@ -1919,7 +2001,7 @@ GLvoid Timer(int value) {
 					zombie[i].concept_state = 4;
 				}
 
-				if (distance <= 1 && gaurd <= 0)
+				if (distance <= 0.5f && gaurd <= 0)
 				{
 					gaurd = 50;
 					life--;
