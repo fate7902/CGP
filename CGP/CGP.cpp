@@ -51,6 +51,10 @@ struct Particle
 	GLfloat r, g, b;
 	GLint count; // 20시 삭제
 	GLboolean draw;
+	void sound()
+	{
+
+	}
 };
 
 struct Item
@@ -68,6 +72,10 @@ struct Sword
 	GLint state; // 0 - 프리 1 - 발사중
 	GLint temp_atk;
 	GLfloat dx, dz;
+	void sound() 
+	{
+
+	}
 };
 
 struct Zombieset
@@ -1121,6 +1129,20 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glBindVertexArray(vao[3]);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
+	//door start
+	colorLocation = glGetUniformLocation(s_program, "color");
+	glUniform3f(colorLocation, goal_r, goal_g, goal_b);
+	CT = glm::mat4(1.0f);
+	MX = glm::mat4(1.0f);
+	CS = glm::mat4(1.0f);
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
+	MX = glm::translate(MX, glm::vec3(0.0f, 0.0f, 6.0f));
+	CT = MX * CS;
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
+	glBindVertexArray(vao[3]);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
 	// zombie
 	glm::mat4 Ty = glm::mat4(1.0f);
 	glm::mat4 Ty1 = glm::mat4(1.0f);
@@ -1479,7 +1501,6 @@ GLvoid KeyUp(unsigned char key, int x, int y) {
 	case 'q' | 'Q':
 	case 'e' | 'E':
 		rotate_state = 0;
-		right_button = -1;
 		break;
 	}
 	glutPostRedisplay();
@@ -1510,11 +1531,11 @@ GLvoid Mouse(int button, int state, int x, int y)
 	if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
 		if (firstMouseX < 0)
 		{
-			rotate -= (-firstMouseX / (GLfloat)0.05) * (GLfloat)3;
+			rotate -= (-firstMouseX / (GLfloat)0.05) * (GLfloat)2;
 		}
 		else
 		{
-			rotate += (firstMouseX / (GLfloat)0.05) * (GLfloat)3;
+			rotate += (firstMouseX / (GLfloat)0.05) * (GLfloat)2;
 		}
 		//right_button *= -1;
 	}
