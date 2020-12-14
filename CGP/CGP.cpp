@@ -169,6 +169,7 @@ GLfloat goal_r = 0.f, goal_g = 0.f, goal_b = 0.f;
 GLfloat firstMouseX = 0; // 최초 마우스 위치
 GLint right_button = -1; // 시점이동 중단용 우클릭
 int dwID; // 배경음악 재생용 변수
+GLboolean musicON_OFF = true; // 배경음악 재생 on off
 
 // 여기에 도형 좌표 해주세요
 GLfloat line[6][3] = {
@@ -259,7 +260,10 @@ void BgmPlay()
 
 	dwID = mciOpen.wDeviceID;
 
+	if(musicON_OFF)
 	mciSendCommand(dwID, MCI_PLAY, MCI_DGV_PLAY_REPEAT, (DWORD)(LPVOID)&m_mciPlayParms);
+	else
+	mciSendCommandW(dwID, MCI_CLOSE, 0, NULL);        /// stop
 }
 
 char* filetobuf(const char* file) {
@@ -1497,6 +1501,13 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 	case 'p' | 'P':
 		life = -1;
 		break;
+	case 'm' | 'M':
+		if (musicON_OFF)
+			musicON_OFF = false;
+		else
+			musicON_OFF = true;
+		BgmPlay();
+		break;
 	case 'g' | 'G':	
 		glutLeaveMainLoop();
 		break;
@@ -2134,14 +2145,17 @@ GLvoid Timer(int value) {
 void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 {
 	// 키 셋
+	std::cout << "---------------------------------------" << std::endl;
 	printf("공격은 한번에 최대 5회\n");
 	printf("플레이어 시점에서만 위치이동 가능\n");
 	printf("게임 클리어 및 게임 오버시 자동 재시작\n");
+	std::cout << "---------------------------------------" << std::endl;
 	printf("wasd/WASD - 앞뒤좌우\n");
-	printf("q/Q(화면 좌측 우클릭) - 좌측 회전\te/E(화면 우측 우클릭) - 우측 회전\n");
+	printf("q/Q(화면 좌측 우클릭) - 좌측 회전\ne/E(화면 우측 우클릭) - 우측 회전\n");
 	printf("j/J(좌클릭) - 공격\n");
 	printf("t/T - 시점 변화(현재 위치 상공뷰)\n");
 	printf("p/P - 재시작\tg/G - 종료\n");
+	std::cout << "m/M - 음악 켜기/끄기" << std::endl;
 
 	srand((unsigned int)time(NULL));
 	// 화면 사이즈 조절
