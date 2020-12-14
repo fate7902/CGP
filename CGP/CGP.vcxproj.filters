@@ -19,4 +19,18 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="공격.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="괴물.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="bgm.mp3">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="Item.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+  </ItemGroup>
 </Project>

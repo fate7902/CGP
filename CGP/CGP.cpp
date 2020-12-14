@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #pragma comment(lib,"glew32")
 #pragma comment(lib,"freeglut")
+#pragma comment(lib,"winmm.lib")
 
 #include <iostream>
 #include <gl/glew.h>
@@ -9,9 +10,17 @@
 #include <gl/glm/glm.hpp>
 #include <gl/glm/ext.hpp>
 #include <gl/glm/gtc/matrix_transform.hpp>
+#include <Windows.h>
+#include <mmsystem.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "Digitalv.h"
+MCI_OPEN_PARMS m_mciOpenParms;
+MCI_PLAY_PARMS m_mciPlayParms;
+DWORD m_dwDeviceID;
+MCI_OPEN_PARMS mciOpen;
+MCI_PLAY_PARMS mciPlay;
 
 // 정의는 이곳에 해주세요
 #define PI 3.141592
@@ -51,10 +60,6 @@ struct Particle
 	GLfloat r, g, b;
 	GLint count; // 20시 삭제
 	GLboolean draw;
-	void sound()
-	{
-
-	}
 };
 
 struct Item
@@ -63,6 +68,10 @@ struct Item
 	GLint type; // 1 - 열쇠 2 - 체력 3 - 공격력 업
 	GLboolean draw; // 그릴지 여부
 	GLfloat r, g, b;
+	void sound()
+	{
+		PlaySound(L"item.wav", 0, SND_FILENAME | SND_ASYNC);
+	}
 };
 
 struct Sword
@@ -74,7 +83,7 @@ struct Sword
 	GLfloat dx, dz;
 	void sound() 
 	{
-
+		PlaySound(L"공격.wav", 0, SND_FILENAME | SND_ASYNC);
 	}
 };
 
@@ -97,6 +106,10 @@ struct Zombie
 	GLint count; // 위치변화 횟수
 	GLint life;
 	GLboolean draw;
+	void sound()
+	{
+		PlaySound(L"괴물.wav", 0, SND_FILENAME | SND_ASYNC);
+	}
 };
 
 struct Sword sword[MAX_ATTACK] = { 0, };
@@ -155,6 +168,7 @@ GLint life = LIFE, power = POWER, gaurd = 0; // 생명, 공격력, 피격 후 무적 시간
 GLfloat goal_r = 0.f, goal_g = 0.f, goal_b = 0.f;
 GLfloat firstMouseX = 0; // 최초 마우스 위치
 GLint right_button = -1; // 시점이동 중단용 우클릭
+int dwID; // 배경음악 재생용 변수
 
 // 여기에 도형 좌표 해주세요
 GLfloat line[6][3] = {
@@ -234,8 +248,19 @@ GLvoid Reshape(int w, int h);
 GLvoid KeyBoard(unsigned char key, int x, int y);
 GLvoid KeyUp(unsigned char key, int x, int y);
 GLvoid Mouse(int button, int state, int x, int y);
-GLvoid Motion(int x, int y);
 GLvoid Timer(int value);
+
+void BgmPlay()
+{
+	mciOpen.lpstrElementName = L"bgm.mp3"; // 파일 경로 입력
+	mciOpen.lpstrDeviceType = L"mpegvideo";
+
+	mciSendCommand(NULL, MCI_OPEN, MCI_OPEN_ELEMENT | MCI_OPEN_TYPE,	(DWORD)(LPVOID)&mciOpen);
+
+	dwID = mciOpen.wDeviceID;
+
+	mciSendCommand(dwID, MCI_PLAY, MCI_DGV_PLAY_REPEAT, (DWORD)(LPVOID)&m_mciPlayParms);
+}
 
 char* filetobuf(const char* file) {
 
@@ -371,7 +396,6 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glEnable(GL_CULL_FACE);
 
 	glUseProgram(s_program);
-
 	// 카메라 위치
 	// 상공
 	glm::vec3 cameraPos = glm::vec3(0.0f, 40.0f, 0.0f);
@@ -1517,6 +1541,7 @@ GLvoid Mouse(int button, int state, int x, int y)
 					sword[i].dz = -(ds * cos(GetRadian(90 + rotate)));
 					atk_count++;
 					i = MAX_ATTACK;
+					sword[i].sound();
 				}
 			}
 		}
@@ -1530,21 +1555,7 @@ GLvoid Mouse(int button, int state, int x, int y)
 		{
 			rotate += (firstMouseX / (GLfloat)0.05) * (GLfloat)2;
 		}
-		//right_button *= -1;
 	}
-}
-
-GLvoid Motion(int x, int y)
-{
-	if (right_button == 1) {
-		GLfloat tempvalue = (GLfloat)((x - (GLfloat)width / 2.0) * (GLfloat)(1.0 / (GLfloat)(width / 2.0)));
-		if (tempvalue < 0)
-			rotate_state = 1;
-		else if (tempvalue > 0)
-			rotate_state = 2;
-	}
-	else
-		rotate_state = 0;
 }
 
 GLvoid Timer(int value) {
@@ -1573,6 +1584,7 @@ GLvoid Timer(int value) {
 								zombie[j].life -= power;
 								if (zombie[j].life <= 0)
 								{
+									zombie[j].sound();
 									zombie[j].draw = GL_FALSE;
 									for (int k = 0; k < 2; k++)
 									{
@@ -1810,6 +1822,7 @@ GLvoid Timer(int value) {
 					if (distance <= 1)
 					{
 						item[i].draw = GL_FALSE;
+						item[i].sound();
 						switch (item[i].type)
 						{
 						case 1:
@@ -2029,7 +2042,7 @@ GLvoid Timer(int value) {
 	{
 		// 게임 오버 및 클리어시
 		rotate = 0.f;
-		camera_set = GL_FALSE;
+		camera_set = GL_TRUE;
 		col = GL_FALSE; // 충돌 여부판단
 		ws_state = 0;
 		ad_state = 0;
@@ -2193,14 +2206,15 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	//--- 윈도우 생성하기
 	glutInit(&argc, argv); // glut 초기화
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH); // 디스플레이 모드 설정
-	glutInitWindowPosition(500, 20); // 윈도우의 위치 지정
+	glutInitWindowPosition(700, 20); // 윈도우의 위치 지정
 	glutInitWindowSize(width, height); // 윈도우의 크기 지정
 	glutCreateWindow("CGP"); // 윈도우 생성(윈도우 이름)
+
+	BgmPlay();
 
 	//--- GLEW 초기화하기
 	glewExperimental = GL_TRUE;
 	glewInit();
-
 	InitShader();
 	InitBuffer();
 
@@ -2209,7 +2223,6 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	glutKeyboardFunc(KeyBoard);
 	glutKeyboardUpFunc(KeyUp);
 	glutMouseFunc(Mouse);
-	glutPassiveMotionFunc(Motion);
 	glutTimerFunc(50, Timer, 1);
 	glutMainLoop(); // 이벤트 처리 시작
 }

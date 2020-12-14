@@ -142,6 +142,12 @@
   <ItemGroup>
     <ClCompile Include="CGP.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="bgm.mp3" />
+    <Media Include="Item.wav" />
+    <Media Include="공격.wav" />
+    <Media Include="괴물.wav" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
