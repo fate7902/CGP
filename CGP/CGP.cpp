@@ -20,6 +20,7 @@
 #define MAX_ZOMBIEMOVE 100
 #define MAX_DISTANCE 16
 #define MAX_ATTACK 5
+#define MAX_ITEM 11
 
 GLuint vertexShader;
 GLuint fragmentShader;
@@ -37,6 +38,14 @@ struct Collision
 {
 	GLfloat left_x, right_x;
 	GLfloat bottom_z, top_z;
+};
+
+struct Item
+{
+	GLfloat posZ, posX;
+	GLuint type; // 1 - 열쇠 2 - 체력 3 - 공격력 업
+	GLboolean draw; // 그릴지 여부
+	GLfloat r, g, b;
 };
 
 struct Sword
@@ -97,10 +106,15 @@ struct Zombieset zombieset[MAX_ZOMBIE] =
 	{11.f,1.f,56.5f,1,4},{12.f,1.f,56.5f,1,4},{13.5f,1.f,62.5f,1,1},{13.5f,1.f,63.5f,1,1},
 	{24.5f,1.f,62.5f,2,3},{24.5f,1.f,63.5f,2,3}
 };
+struct Item item[MAX_ITEM] = {
+	{11.5f,10.5f,1,GL_FALSE,1.f,1.f,0.f},{14.5f,30.5f,1,GL_FALSE,1.f,1.f,0.f},{14.5f,34.5f,1,GL_FALSE,1.f,1.f,0.f},
+	{30.5f,34.5f,1,GL_FALSE,1.f,1.f,0.f},{2.5f,37.5f,1,GL_FALSE,1.f,1.f,0.f},{30.5f,38.5f,1,GL_FALSE,1.f,1.f,0.f},
+	{6.5f,46.5f,1,GL_FALSE,1.f,1.f,0.f},{6.5f,54.5f,1,GL_FALSE,1.f,1.f,0.f},{30.5f,58.5f,1,GL_FALSE,1.f,1.f,0.f},
+	{18.5f,36.5f,2,GL_TRUE,0.f,1.f,0.f},{26.5f,42.5f,3,GL_TRUE,0.5f,0.f,1.f}
+};
 struct Zombie zombie[MAX_ZOMBIE] = { 0, };
 
 // 추가 변수 여기에 선언해주세요
-GLfloat dx = 0.f, dy = 0.f, dz = 0.f; // 이동값
 GLfloat rotate = 0.f; // 회전 값
 GLfloat ds = 0.1f; // 이동크기값
 GLfloat posX = 0.f, posY = 2.f, posZ = 0.f; // 초기 생성 위치 값
@@ -330,7 +344,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	// 카메라 위치
 	// 상공
 	glm::vec3 cameraPos = glm::vec3(0.0f, 40.0f, 0.0f);
-	glm::vec3 cameraTarget = glm::vec3(realX, realY, realZ); // 카메라가 바라보는 곳	
+	glm::vec3 cameraTarget = glm::vec3(realZ, realY, realX); // 카메라가 바라보는 곳
 	glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget); //--- 카메라 방향 벡터
 	glm::vec3 up = glm::vec3(0.0f, 0.0f,-1.0f);
 	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
@@ -345,14 +359,14 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glm::mat4 rotatePos = glm::mat4(1.0f);
 	if (!camera_set) // 상공시점
 	{
-		transPos = glm::translate(transPos, glm::vec3(-realX, realY, realZ));
+		transPos = glm::translate(transPos, glm::vec3(-realZ, realX, realY));		
 		view = glm::lookAt(cameraPos, cameraDirection, cameraUp);
 		view = transPos * view;
 	}
 	else // 주인공 시점
 	{
 		rotatePos = glm::rotate(rotatePos, glm::radians(rotate), glm::vec3(0.0f, 1.0f, 0.0f));
-		transPos = glm::translate(transPos, glm::vec3(-realX, dy, dz));
+		transPos = glm::translate(transPos, glm::vec3(-realX, realY - 2.f, realZ));
 		view = glm::lookAt(cameraPos2, cameraTarget2, cameraUp2);
 		view = rotatePos * transPos * view;
 	}	
@@ -1275,6 +1289,28 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		}
 	}
 
+	// 아이템 그리기
+	for (int i = 0; i < MAX_ITEM; i++)
+	{
+		if (item[i].draw)
+		{
+			colorLocation = glGetUniformLocation(s_program, "color");
+			glUniform3f(colorLocation, item[i].r, item[i].g, item[i].b);
+			TT = glm::mat4(1.0f);
+			TS = glm::mat4(1.0f);
+			Ty = glm::mat4(1.0f);
+			TM = glm::mat4(1.0f);
+			TM = glm::translate(TM, glm::vec3(item[i].posX, 0.0f, item[i].posZ));
+			Ty = glm::translate(Ty, glm::vec3(0.0f, 1.f, 0.0f));
+			TS = glm::scale(TS, glm::vec3(1.0f, 0.5f, 1.0f));
+			TT = TM * Ty * TS;
+			modelLocation = glGetUniformLocation(s_program, "modelTransform");
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+			glBindVertexArray(vao[2]);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+	}
+
 	glutSwapBuffers(); // 화면에 출력하기
 }
 
@@ -1399,7 +1435,7 @@ GLvoid Timer(int value) {
 	}
 
 	// 플레이어 이동
-	if (ws_state != 0)
+	if (ws_state != 0 && camera_set)
 	{
 		switch (ws_state)
 		{
@@ -1418,8 +1454,6 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dz += (ds * sin(GetRadian(90 - rotate)));
-				dx -= (ds * cos(GetRadian(90 - rotate)));
 				realZ += (ds * sin(GetRadian(90 - rotate)));
 				realX += (ds * cos(GetRadian(90 - rotate)));
 			}
@@ -1443,8 +1477,6 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dz -= (ds * sin(GetRadian(90 - rotate)));
-				dx += (ds * cos(GetRadian(90 - rotate)));
 				realZ -= (ds * sin(GetRadian(90 - rotate)));
 				realX -= (ds * cos(GetRadian(90 - rotate)));
 				col = GL_FALSE;
@@ -1459,7 +1491,7 @@ GLvoid Timer(int value) {
 		}
 	}
 
-	if (ad_state != 0)
+	if (ad_state != 0 && camera_set)
 	{
 		switch (ad_state)
 		{
@@ -1478,8 +1510,6 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dz -= (ds * sin(GetRadian(-rotate)));
-				dx += (ds * cos(GetRadian(-rotate)));
 				realZ -= (ds * sin(GetRadian(-rotate)));
 				realX -= (ds * cos(GetRadian(-rotate)));
 				col = GL_FALSE;
@@ -1504,8 +1534,6 @@ GLvoid Timer(int value) {
 			}
 			if (!col)
 			{
-				dz += (ds * sin(GetRadian(-rotate)));
-				dx -= (ds * cos(GetRadian(-rotate)));
 				realZ += (ds * sin(GetRadian(-rotate)));
 				realX += (ds * cos(GetRadian(-rotate)));
 				col = GL_FALSE;
@@ -1720,14 +1748,27 @@ GLvoid Timer(int value) {
 void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 {
 	// 키 셋
+	printf("공격은 한번에 최대 5회\n");
+	printf("플레이어 시점에서만 위치이동 가능\n");
 	printf("wasd/WASD - 앞뒤좌우\n");
-	printf("q/Q - 좌측 회전\te/E - 우측 회전\n");
-	printf("t/T - 시점 변화\n");
+	printf("q/Q - 좌측 회전\te/E - 우측 회전\tj/J - 공격\n");
+	printf("t/T - 시점 변화(현재 위치 상공뷰)\n");
 
 	srand((unsigned int)time(NULL));
 	// 화면 사이즈 조절
 	width = 1000;
 	height = 1000;
+
+	// 키 박스 설정
+	GLint temp1 = rand() % 2;
+	GLint temp2 = rand() % 8 + 2;
+	for (int i = 0; i < MAX_ITEM; i++)
+	{
+		if (i == temp1 || i == temp2)
+		{
+			item[i].draw = GL_TRUE;
+		}
+	}
 
 	// 좀비 초기화
 	for (int i = 0; i < MAX_ZOMBIE; i++)
@@ -1765,7 +1806,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	//--- 윈도우 생성하기
 	glutInit(&argc, argv); // glut 초기화
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH); // 디스플레이 모드 설정
-	glutInitWindowPosition(300, 20); // 윈도우의 위치 지정
+	glutInitWindowPosition(500, 20); // 윈도우의 위치 지정
 	glutInitWindowSize(width, height); // 윈도우의 크기 지정
 	glutCreateWindow("CGP"); // 윈도우 생성(윈도우 이름)
 
