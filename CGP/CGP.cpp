@@ -126,6 +126,8 @@ GLboolean col = GL_FALSE; // 충돌 여부판단
 GLuint ws_state = 0, ad_state = 0; // 0 - 정지 1 - 앞/좌 2 - 뒤/우
 GLuint rotate_state = 0; // 0 - 정지 1 - 좌 2 - 우
 GLuint atk_count = 0, temp_atk = 0;
+GLfloat firstMouseX = 0; // 최초 마우스 위치
+GLuint right_button = -1; // 시점이동 중단용 우클릭
 
 // 여기에 도형 좌표 해주세요
 GLfloat line[6][3] = {
@@ -204,6 +206,8 @@ GLvoid drawScene(GLvoid);
 GLvoid Reshape(int w, int h);
 GLvoid KeyBoard(unsigned char key, int x, int y);
 GLvoid KeyUp(unsigned char key, int x, int y);
+GLvoid Mouse(int button, int state, int x, int y);
+GLvoid Motion(int x, int y);
 GLvoid Timer(int value);
 
 char* filetobuf(const char* file) {
@@ -393,24 +397,24 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glm::mat4 CT = glm::mat4(1.0f);
 	glm::mat4 MX = glm::mat4(1.0f);
 	glm::mat4 CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(32.0f, 10.0f, 1.0));
+	CS = glm::scale(CS, glm::vec3(32.0f, 6.0f, 1.0));
 	MX = glm::translate(MX, glm::vec3(0.0f, 0.0f, 5.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
 	glBindVertexArray(vao[1]);
 	colorLocation = glGetUniformLocation(s_program, "color");
-	glUniform3f(colorLocation, 0.2, 0.4, 0.7);
+	glUniform3f(colorLocation, 0.3, 0.3, 0.3);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	// wall2
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 16.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 16.0f));
 	MX = glm::translate(MX, glm::vec3(0.0f, 0.0f, 9.0f));
 	CT = MX * CS;
-	modelLocation = glGetUniformLocation(s_program, "modelTransform");	
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
 	glBindVertexArray(vao[1]);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -419,7 +423,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(32.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(32.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(0.0f, 0.0f, 25.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -431,7 +435,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 16.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 16.0f));
 	MX = glm::translate(MX, glm::vec3(16.0f, 0.0f, 6.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -443,7 +447,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 16.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 16.0f));
 	MX = glm::translate(MX, glm::vec3(20.0f, 0.0f, 9.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -455,7 +459,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 8.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 8.0f));
 	MX = glm::translate(MX, glm::vec3(4.0f, 0.0f, 14.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -467,7 +471,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 8.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 8.0f));
 	MX = glm::translate(MX, glm::vec3(12.0f, 0.0f, 17.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -479,7 +483,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 8.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 8.0f));
 	MX = glm::translate(MX, glm::vec3(28.0f, 0.0f, 9.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -491,7 +495,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 4.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 4.0f));
 	MX = glm::translate(MX, glm::vec3(8.0f, 0.0f, 9.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -503,7 +507,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 4.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 4.0f));
 	MX = glm::translate(MX, glm::vec3(24.0f, 0.0f, 18.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -515,7 +519,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 4.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 4.0f));
 	MX = glm::translate(MX, glm::vec3(28.0f, 0.0f, 21.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -527,7 +531,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 15.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 15.0f));
 	MX = glm::translate(MX, glm::vec3(32.0f, 0.0f, 1.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -539,7 +543,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 12.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 12.0f));
 	MX = glm::translate(MX, glm::vec3(32.0f, 0.0f, 20.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -551,7 +555,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(32.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(32.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(32.0f, 0.0f, 0.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -563,7 +567,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(32.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(32.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(32.0f, 0.0f, 32.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -575,7 +579,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(12.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(12.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(4.0f, 0.0f, 13.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -587,7 +591,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(5.0f, 0.0f, 21.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -599,7 +603,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(8.0f, 0.0f, 17.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -611,7 +615,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(9.0f, 0.0f, 9.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -623,7 +627,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(21.0f, 0.0f, 13.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -635,7 +639,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(24.0f, 0.0f, 9.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -647,7 +651,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(5.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(5.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(24.0f, 0.0f, 17.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -659,7 +663,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(8.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(8.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(29.0f, 0.0f, 16.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -671,7 +675,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(8.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(8.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(33.0f, 0.0f, 20.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -683,7 +687,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(8.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(8.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(44.0f, 0.0f, 20.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -695,7 +699,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(8.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(8.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(36.0f, 0.0f, 28.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -707,7 +711,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(8.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(8.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(52.0f, 0.0f, 13.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -719,7 +723,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(8.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(8.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(53.0f, 0.0f, 4.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -731,7 +735,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(13.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(13.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(36.0f, 0.0f, 24.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -743,7 +747,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(11.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(11.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(37.0f, 0.0f, 8.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -755,7 +759,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(13.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(13.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(48.0f, 0.0f, 28.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -767,7 +771,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(3.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(3.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(36.0f, 0.0f, 4.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -779,7 +783,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(5.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(5.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(43.0f, 0.0f, 4.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -791,7 +795,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(41.0f, 0.0f, 12.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -803,7 +807,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(45.0f, 0.0f, 16.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -815,7 +819,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(3.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(3.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(53.0f, 0.0f, 17.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -827,7 +831,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(57.0f, 0.0f, 24.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -839,7 +843,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(60.0f, 0.0f, 8.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -851,7 +855,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(4.0f, 10.0f, 1.0f));
+	CS = glm::scale(CS, glm::vec3(4.0f, 6.0f, 1.0f));
 	MX = glm::translate(MX, glm::vec3(61.0f, 0.0f, 20.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -863,7 +867,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 3.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
 	MX = glm::translate(MX, glm::vec3(36.0f, 0.0f, 29.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -875,7 +879,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 4.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 4.0f));
 	MX = glm::translate(MX, glm::vec3(39.0f, 0.0f, 1.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -887,7 +891,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 4.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 4.0f));
 	MX = glm::translate(MX, glm::vec3(44.0f, 0.0f, 16.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -899,7 +903,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 4.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 4.0f));
 	MX = glm::translate(MX, glm::vec3(44.0f, 0.0f, 25.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -911,7 +915,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 5.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 5.0f));
 	MX = glm::translate(MX, glm::vec3(56.0f, 0.0f, 5.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -923,7 +927,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 3.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
 	MX = glm::translate(MX, glm::vec3(56.0f, 0.0f, 29.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -935,7 +939,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 8.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 8.0f));
 	MX = glm::translate(MX, glm::vec3(36.0f, 0.0f, 8.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -947,7 +951,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 8.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 8.0f));
 	MX = glm::translate(MX, glm::vec3(40.0f, 0.0f, 12.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -959,7 +963,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 12.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 12.0f));
 	MX = glm::translate(MX, glm::vec3(48.0f, 0.0f, 4.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -971,7 +975,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 8.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 8.0f));
 	MX = glm::translate(MX, glm::vec3(52.0f, 0.0f, 17.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -983,7 +987,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 8.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 8.0f));
 	MX = glm::translate(MX, glm::vec3(56.0f, 0.0f, 17.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -995,7 +999,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 9.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 9.0f));
 	MX = glm::translate(MX, glm::vec3(52.0f, 0.0f, 4.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -1007,7 +1011,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 8.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 8.0f));
 	MX = glm::translate(MX, glm::vec3(60.0f, 0.0f, 13.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -1019,7 +1023,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 17.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 17.0f));
 	MX = glm::translate(MX, glm::vec3(64.0f, 0.0f, 0.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -1031,7 +1035,7 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 10.0f, 12.0f));
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 12.0f));
 	MX = glm::translate(MX, glm::vec3(64.0f, 0.0f, 21.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
@@ -1054,18 +1058,44 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	/*
-	//roof56	
+	//roof56
 	CT = glm::mat4(1.0f);
 	MX = glm::mat4(1.0f);
 	CS = glm::mat4(1.0f);
 	CS = glm::scale(CS, glm::vec3(65.0f, 1.0f, 33.0f));
-	MX = glm::translate(MX, glm::vec3(0.0f, 10.0f, 0.0f));
+	MX = glm::translate(MX, glm::vec3(0.0f, 6.0f, 0.0f));
 	CT = MX * CS;
 	modelLocation = glGetUniformLocation(s_program, "modelTransform");
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
 	glBindVertexArray(vao[3]);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	*/
+
+	//door1	
+	CT = glm::mat4(1.0f);
+	MX = glm::mat4(1.0f);
+	CS = glm::mat4(1.0f);
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
+	MX = glm::translate(MX, glm::vec3(32.0f, 0.0f,17.0f));
+	CT = MX * CS;
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
+	glBindVertexArray(vao[3]);
+	colorLocation = glGetUniformLocation(s_program, "color");
+	glUniform3f(colorLocation, 0.0, 0.0, 0.0);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	//door2	
+	CT = glm::mat4(1.0f);
+	MX = glm::mat4(1.0f);
+	CS = glm::mat4(1.0f);
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
+	MX = glm::translate(MX, glm::vec3(64.0f, 0.0f, 17.0f));
+	CT = MX * CS;
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
+	glBindVertexArray(vao[3]);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	// zombie
 	glm::mat4 Ty = glm::mat4(1.0f);
@@ -1388,11 +1418,51 @@ GLvoid KeyUp(unsigned char key, int x, int y) {
 	case 'q' | 'Q':
 	case 'e' | 'E':
 		rotate_state = 0;
+		right_button = -1;
 		break;
 	default:
 		break;
 	}
 	glutPostRedisplay();
+}
+
+GLvoid Mouse(int button, int state, int x, int y)
+{
+	firstMouseX = (float)((x - (float)width / 2.0) * (float)(1.0 / (float)(width / 2.0)));
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		if (atk_count < MAX_ATTACK)
+		{
+			for (int i = 0; i < MAX_ATTACK; i++)
+			{
+				if (sword[i].state == 0)
+				{
+					sword[i].posX = realZ - 2.2f;
+					sword[i].posZ = realX;
+					sword[i].rotate = -rotate;
+					sword[i].state = 1;
+					sword[i].dx = (ds * sin(GetRadian(90 - rotate)));
+					sword[i].dz = -(ds * cos(GetRadian(90 + rotate)));
+					atk_count++;
+					i = MAX_ATTACK;
+				}
+			}
+		}
+	}
+	if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+		right_button *= -1;
+	}
+}
+
+GLvoid Motion(int x, int y)
+{
+	if (right_button == 1) {
+		if ((GLfloat)((x - (GLfloat)width / 2.0) * (GLfloat)(1.0 / (GLfloat)(width / 2.0))) < 0)
+			rotate_state = 1;
+		else if ((GLfloat)((x - (GLfloat)width / 2.0) * (GLfloat)(1.0 / (GLfloat)(width / 2.0))) > 0)
+			rotate_state = 2;
+	}
+	else
+		rotate_state = 0;
 }
 
 GLvoid Timer(int value) {
@@ -1821,6 +1891,8 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	glutReshapeFunc(Reshape); // 다시 그리기 함수 지정
 	glutKeyboardFunc(KeyBoard);
 	glutKeyboardUpFunc(KeyUp);
+	glutMouseFunc(Mouse);
+	glutPassiveMotionFunc(Motion);
 	glutTimerFunc(50, Timer, 1);
 	glutMainLoop(); // 이벤트 처리 시작
 }
