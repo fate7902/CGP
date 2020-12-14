@@ -15,7 +15,7 @@
 
 // 정의는 이곳에 해주세요
 #define PI 3.141592
-#define MAX_WALL 54
+#define MAX_WALL 56
 #define MAX_ZOMBIE 34
 #define MAX_ZOMBIEMOVE 100
 #define MAX_DISTANCE 16
@@ -38,6 +38,7 @@ struct Collision
 {
 	GLfloat left_x, right_x;
 	GLfloat bottom_z, top_z;
+	GLboolean draw; // 그릴지 여부
 };
 
 struct Item
@@ -81,20 +82,20 @@ struct Zombie
 struct Sword sword[MAX_ATTACK] = { 0, };
 struct Collision collision[MAX_WALL] =
 { 
-	{5.f,6.f,0.f,32.f},{9.f,26.f,0.f,1.f},{25.f,26.f,0.f,32.f},{6.f,22.f,16.f,17.f},
-	{9.f,25.f,20.f,21.f},{14.f,22.f,4.f,5.f},{17.f,25.f,12.f,13.f},{9.f,17.f,28.f,29.f},
-	{9.f,13.f,8.f,9.f},{18.f,22.f,24.f,25.f},{21.f,25.f,28.f,29.f},{1.f,16.f,32.f,33.f},
-	{20.f,32.f,32.f,33.f},{0.f,1.f,32.f,64.f},{32.f,33.f,32.f,64.f},{13.f,14.f,4.f,16.f},
-	{21.f,22.f,5.f,9.f},{17.f,18.f,8.f,12.f},{9.f,10.f,9.f,13.f},{13.f,14.f,21.f,25.f},
-	{9.f,10.f,24.f,28.f},{17.f,18.f,24.f,29.f},{16.f,17.f,29.f,37.f},{20.f,21.f,33.f,41.f},
-	{20.f,21.f,44.f,52.f},{28.f,29.f,36.f,44.f},{13.f,14.f,52.f,60.f},{4.f,5.f,53.f,61.f},
-	{24.f,25.f,36.f,49.f},{8.f,9.f,37.f,48.f},{28.f,29.f,48.f,61.f},{4.f,5.f,36.f,39.f},
-	{4.f,5.f,43.f,48.f},{12.f,13.f,41.f,45.f},{16.f,17.f,45.f,49.f},{17.f,18.f,53.f,56.f},
-	{24.f,25.f,57.f,61.f},{8.f,9.f,60.f,64.f},{20.f,21.f,61.f,65.f},{29.f,32.f,36.f,37.f},
-	{1.f,5.f,39.f,40.f},{16.f,20.f,44.f,45.f},{25.f,29.f,44.f,45.f},{5.f,10.f,56.f,57.f},
-	{29.f,32.f,56.f,57.f},{8.f,16.f,36.f,37.f},{12.f,20.f,40.f,41.f},{4.f,16.f,48.f,49.f},
-	{17.f,25.f,52.f,53.f},{17.f,25.f,56.f,57.f},{4.f,13.f,52.f,53.f},{13.f,21.f,60.f,61.f},
-	{0.f,17.f,64.f,65.f},{21.f,33.f,64.f,65.f}
+	{5.f,6.f,0.f,32.f,GL_TRUE},{9.f,26.f,0.f,1.f,GL_TRUE},{25.f,26.f,0.f,32.f,GL_TRUE},{6.f,22.f,16.f,17.f,GL_TRUE},
+	{9.f,25.f,20.f,21.f,GL_TRUE},{14.f,22.f,4.f,5.f,GL_TRUE},{17.f,25.f,12.f,13.f,GL_TRUE},{9.f,17.f,28.f,29.f,GL_TRUE},
+	{9.f,13.f,8.f,9.f,GL_TRUE},{18.f,22.f,24.f,25.f,GL_TRUE},{21.f,25.f,28.f,29.f,GL_TRUE},{1.f,16.f,32.f,33.f,GL_TRUE},
+	{20.f,32.f,32.f,33.f,GL_TRUE},{0.f,1.f,32.f,64.f,GL_TRUE},{32.f,33.f,32.f,64.f,GL_TRUE},{13.f,14.f,4.f,16.f,GL_TRUE},
+	{21.f,22.f,5.f,9.f,GL_TRUE},{17.f,18.f,8.f,12.f,GL_TRUE},{9.f,10.f,9.f,13.f,GL_TRUE},{13.f,14.f,21.f,25.f,GL_TRUE},
+	{9.f,10.f,24.f,28.f,GL_TRUE},{17.f,18.f,24.f,29.f,GL_TRUE},{16.f,17.f,29.f,37.f,GL_TRUE},{20.f,21.f,33.f,41.f,GL_TRUE},
+	{20.f,21.f,44.f,52.f,GL_TRUE},{28.f,29.f,36.f,44.f,GL_TRUE},{13.f,14.f,52.f,60.f,GL_TRUE},{4.f,5.f,53.f,61.f,GL_TRUE},
+	{24.f,25.f,36.f,49.f,GL_TRUE},{8.f,9.f,37.f,48.f,GL_TRUE},{28.f,29.f,48.f,61.f,GL_TRUE},{4.f,5.f,36.f,39.f,GL_TRUE},
+	{4.f,5.f,43.f,48.f,GL_TRUE},{12.f,13.f,41.f,45.f,GL_TRUE},{16.f,17.f,45.f,49.f,GL_TRUE},{17.f,18.f,53.f,56.f,GL_TRUE},
+	{24.f,25.f,57.f,61.f,GL_TRUE},{8.f,9.f,60.f,64.f,GL_TRUE},{20.f,21.f,61.f,65.f,GL_TRUE},{29.f,32.f,36.f,37.f,GL_TRUE},
+	{1.f,5.f,39.f,40.f,GL_TRUE},{16.f,20.f,44.f,45.f,GL_TRUE},{25.f,29.f,44.f,45.f,GL_TRUE},{5.f,10.f,56.f,57.f,GL_TRUE},
+	{29.f,32.f,56.f,57.f,GL_TRUE},{8.f,16.f,36.f,37.f,GL_TRUE},{12.f,20.f,40.f,41.f,GL_TRUE},{4.f,16.f,48.f,49.f,GL_TRUE},
+	{17.f,25.f,52.f,53.f,GL_TRUE},{17.f,25.f,56.f,57.f,GL_TRUE},{4.f,13.f,52.f,53.f,GL_TRUE},{13.f,21.f,60.f,61.f,GL_TRUE},
+	{0.f,17.f,64.f,65.f,GL_TRUE},{21.f,33.f,64.f,65.f,GL_TRUE},{17.f,20.f,32.f,33.f,GL_TRUE},{17.f,20.f,64.f,65.f,GL_TRUE}
 };
 struct Zombieset zombieset[MAX_ZOMBIE] =
 {
@@ -1074,31 +1075,37 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	*/
 
-	//door1	
-	CT = glm::mat4(1.0f);
-	MX = glm::mat4(1.0f);
-	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
-	MX = glm::translate(MX, glm::vec3(32.0f, 0.0f,17.0f));
-	CT = MX * CS;
-	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
-	glBindVertexArray(vao[3]);
+	//door1
 	colorLocation = glGetUniformLocation(s_program, "color");
 	glUniform3f(colorLocation, 0.0, 0.0, 0.0);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	if (collision[54].draw)
+	{
+		CT = glm::mat4(1.0f);
+		MX = glm::mat4(1.0f);
+		CS = glm::mat4(1.0f);
+		CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
+		MX = glm::translate(MX, glm::vec3(32.0f, 0.0f, 17.0f));
+		CT = MX * CS;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
+		glBindVertexArray(vao[3]);		
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
 
 	//door2	
-	CT = glm::mat4(1.0f);
-	MX = glm::mat4(1.0f);
-	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
-	MX = glm::translate(MX, glm::vec3(64.0f, 0.0f, 17.0f));
-	CT = MX * CS;
-	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
-	glBindVertexArray(vao[3]);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	if (collision[55].draw)
+	{
+		CT = glm::mat4(1.0f);
+		MX = glm::mat4(1.0f);
+		CS = glm::mat4(1.0f);
+		CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
+		MX = glm::translate(MX, glm::vec3(64.0f, 0.0f, 17.0f));
+		CT = MX * CS;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
+		glBindVertexArray(vao[3]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
 
 	// zombie
 	glm::mat4 Ty = glm::mat4(1.0f);
@@ -1542,14 +1549,17 @@ GLvoid Timer(int value) {
 		case 1: // 앞
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ + (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
-					realX + (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
+				if (collision[i].draw)
 				{
-					col = GL_TRUE;
-				}
-				if (col)
-				{
-					i = MAX_WALL;
+					if (realZ + (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
+						realX + (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
+					{
+						col = GL_TRUE;
+					}
+					if (col)
+					{
+						i = MAX_WALL;
+					}
 				}
 			}
 			if (!col)
@@ -1565,14 +1575,17 @@ GLvoid Timer(int value) {
 		case 2: // 뒤
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ - (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
-					realX - (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
+				if (collision[i].draw)
 				{
-					col = GL_TRUE;
-				}
-				if (col)
-				{
-					i = MAX_WALL;
+					if (realZ - (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
+						realX - (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
+					{
+						col = GL_TRUE;
+					}
+					if (col)
+					{
+						i = MAX_WALL;
+					}
 				}
 			}
 			if (!col)
@@ -1598,14 +1611,17 @@ GLvoid Timer(int value) {
 		case 1: // 좌
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ - (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
-					realX - (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
+				if (collision[i].draw)
 				{
-					col = GL_TRUE;
-				}
-				if (col)
-				{
-					i = MAX_WALL;
+					if (realZ - (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
+						realX - (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
+					{
+						col = GL_TRUE;
+					}
+					if (col)
+					{
+						i = MAX_WALL;
+					}
 				}
 			}
 			if (!col)
@@ -1622,14 +1638,17 @@ GLvoid Timer(int value) {
 		case 2: // 우
 			for (int i = 0; i < MAX_WALL; i++)
 			{
-				if (realZ + (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
-					realX + (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
+				if (collision[i].draw)
 				{
-					col = GL_TRUE;
-				}
-				if (col)
-				{
-					i = MAX_WALL;
+					if (realZ + (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
+						realX + (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
+					{
+						col = GL_TRUE;
+					}
+					if (col)
+					{
+						i = MAX_WALL;
+					}
 				}
 			}
 			if (!col)
@@ -1661,6 +1680,42 @@ GLvoid Timer(int value) {
 		default:
 			break;
 		}		
+	}
+
+	// 아이템 충돌 검사
+	if (camera_set)
+	{
+		for (int i = 0; i < MAX_ITEM; i++)
+		{
+			if (item[i].draw)
+			{
+				distance = pow((realZ - item[i].posX), 2) + pow((realX - item[i].posZ), 2);
+				if (distance <= 1)
+				{
+					item[i].draw = GL_FALSE;
+					switch (item[i].type)
+					{
+					case 1:
+						if (i < 2)
+						{
+							collision[54].draw = GL_FALSE;
+						}
+						else
+						{
+							collision[55].draw = GL_FALSE;
+						}
+						break;
+					case 2:
+						life += 1;
+						break;
+					case 3:
+						power += 1;
+						break;					
+					}
+					i = MAX_ITEM;
+				}
+			}
+		}
 	}
 
 	// 좀비 움직임
