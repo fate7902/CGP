@@ -21,6 +21,8 @@
 #define MAX_DISTANCE 16
 #define MAX_ATTACK 5
 #define MAX_ITEM 11
+#define LIFE 3
+#define POWER 1
 
 GLuint vertexShader;
 GLuint fragmentShader;
@@ -44,7 +46,7 @@ struct Collision
 struct Item
 {
 	GLfloat posZ, posX;
-	GLuint type; // 1 - 열쇠 2 - 체력 3 - 공격력 업
+	GLint type; // 1 - 열쇠 2 - 체력 3 - 공격력 업
 	GLboolean draw; // 그릴지 여부
 	GLfloat r, g, b;
 };
@@ -53,8 +55,8 @@ struct Sword
 {
 	GLfloat rotate;
 	GLfloat posX, posZ;
-	GLuint state; // 0 - 프리 1 - 발사중
-	GLuint temp_atk;
+	GLint state; // 0 - 프리 1 - 발사중
+	GLint temp_atk;
 	GLfloat dx, dz;
 };
 
@@ -126,12 +128,13 @@ GLfloat realbody = 0.3f; // 카메라가 주인공이기에 가상의 두께 값
 GLfloat distance; // 좀비와 플레이어의 거리
 GLboolean camera_set = GL_FALSE;
 GLboolean col = GL_FALSE; // 충돌 여부판단
-GLuint ws_state = 0, ad_state = 0; // 0 - 정지 1 - 앞/좌 2 - 뒤/우
-GLuint rotate_state = 0; // 0 - 정지 1 - 좌 2 - 우
-GLuint atk_count = 0, temp_atk = 0;
-GLuint life = 3, power = 1; // 생명, 공격력
+GLint ws_state = 0, ad_state = 0; // 0 - 정지 1 - 앞/좌 2 - 뒤/우
+GLint rotate_state = 0; // 0 - 정지 1 - 좌 2 - 우
+GLint atk_count = 0, temp_atk = 0;
+GLint life = LIFE, power = POWER, gaurd = 0; // 생명, 공격력, 피격 후 무적 시간
+GLfloat goal_r = 0.f, goal_g = 0.f, goal_b = 0.f;
 GLfloat firstMouseX = 0; // 최초 마우스 위치
-GLuint right_button = -1; // 시점이동 중단용 우클릭
+GLint right_button = -1; // 시점이동 중단용 우클릭
 
 // 여기에 도형 좌표 해주세요
 GLfloat line[6][3] = {
@@ -1076,10 +1079,11 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	*/
 
 	//door1
-	colorLocation = glGetUniformLocation(s_program, "color");
-	glUniform3f(colorLocation, 0.0, 0.0, 0.0);
+	
 	if (collision[54].draw)
 	{
+		colorLocation = glGetUniformLocation(s_program, "color");
+		glUniform3f(colorLocation, 0.0, 0.0, 0.0);
 		CT = glm::mat4(1.0f);
 		MX = glm::mat4(1.0f);
 		CS = glm::mat4(1.0f);
@@ -1093,19 +1097,18 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	}
 
 	//door2	
-	if (collision[55].draw)
-	{
-		CT = glm::mat4(1.0f);
-		MX = glm::mat4(1.0f);
-		CS = glm::mat4(1.0f);
-		CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
-		MX = glm::translate(MX, glm::vec3(64.0f, 0.0f, 17.0f));
-		CT = MX * CS;
-		modelLocation = glGetUniformLocation(s_program, "modelTransform");
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
-		glBindVertexArray(vao[3]);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-	}
+	colorLocation = glGetUniformLocation(s_program, "color");
+	glUniform3f(colorLocation, goal_r, goal_g, goal_b);
+	CT = glm::mat4(1.0f);
+	MX = glm::mat4(1.0f);
+	CS = glm::mat4(1.0f);
+	CS = glm::scale(CS, glm::vec3(1.0f, 6.0f, 3.0f));
+	MX = glm::translate(MX, glm::vec3(64.0f, 0.0f, 17.0f));
+	CT = MX * CS;
+	modelLocation = glGetUniformLocation(s_program, "modelTransform");
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
+	glBindVertexArray(vao[3]);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	// zombie
 	glm::mat4 Ty = glm::mat4(1.0f);
@@ -1408,10 +1411,11 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 			}
 		}
 		break;
+	case 'p' | 'P':
+		life = -1;
+		break;
 	case 'g' | 'G':	
 		glutLeaveMainLoop();
-		break;
-	default:
 		break;
 	}
 	glutPostRedisplay();
@@ -1432,8 +1436,6 @@ GLvoid KeyUp(unsigned char key, int x, int y) {
 	case 'e' | 'E':
 		rotate_state = 0;
 		right_button = -1;
-		break;
-	default:
 		break;
 	}
 	glutPostRedisplay();
@@ -1488,417 +1490,531 @@ GLvoid Motion(int x, int y)
 }
 
 GLvoid Timer(int value) {
-	// 공격
-	if (atk_count > 0)
+	if (life > 0)
 	{
-		temp_atk = 0;
-		for (int i = 0; i < MAX_ATTACK; i++)
+		// 공격
+		if (atk_count > 0)
 		{
-			if (sword[i].state == 1)
+			temp_atk = 0;
+			for (int i = 0; i < MAX_ATTACK; i++)
 			{
-				sword[i].posX += sword[i].dx;
-				sword[i].posZ += sword[i].dz;
-				sword[i].temp_atk++;				
-
-				//충돌 처리 공간
-				for (int j = 0; j < MAX_ZOMBIE; j++)
+				if (sword[i].state == 1)
 				{
-					distance = pow(((sword[i].posX + 2.f) - zombie[j].posX), 2) + pow((sword[i].posZ - zombie[j].posZ), 2);					
-					if (distance <= 1)
+					sword[i].posX += sword[i].dx;
+					sword[i].posZ += sword[i].dz;
+					sword[i].temp_atk++;
+
+					//충돌 처리 공간
+					for (int j = 0; j < MAX_ZOMBIE; j++)
 					{
-						zombie[j].life -= power;
-						if (zombie[j].life <= 0)
+						distance = pow(((sword[i].posX + 2.f) - zombie[j].posX), 2) + pow((sword[i].posZ - zombie[j].posZ), 2);
+						if (distance <= 1)
 						{
-							zombie[j].draw = GL_FALSE;
+							zombie[j].life -= power;
+							if (zombie[j].life <= 0)
+							{
+								zombie[j].draw = GL_FALSE;
+							}
+							j = MAX_ZOMBIE;
+							sword[i].temp_atk = 25;
 						}
-						j = MAX_ZOMBIE;
-						sword[i].temp_atk = 25;
 					}
-				}
-				
-				if (sword[i].temp_atk > 20)
-				{
-					sword[i] = { 0, };
-					atk_count--;
-				}
 
-				temp_atk++;
-				if (sword[i].state == 0)
-				{
-					if (temp_atk == atk_count + 1)
+					if (sword[i].temp_atk > 20)
 					{
-						i = MAX_ATTACK;
+						sword[i] = { 0, };
+						atk_count--;
 					}
+
+					temp_atk++;
+					if (sword[i].state == 0)
+					{
+						if (temp_atk == atk_count + 1)
+						{
+							i = MAX_ATTACK;
+						}
+					}
+					else
+					{
+						if (temp_atk == atk_count)
+						{
+							i = MAX_ATTACK;
+						}
+					}
+				}
+			}
+		}
+
+		// 플레이어 이동
+		if (ws_state != 0 && camera_set)
+		{
+			switch (ws_state)
+			{
+			case 1: // 앞
+				for (int i = 0; i < MAX_WALL; i++)
+				{
+					if (collision[i].draw)
+					{
+						if (realZ + (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
+							realX + (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
+						{
+							if (i = MAX_WALL - 1)
+							{
+								life = -1;
+							}
+							col = GL_TRUE;
+						}
+						if (col)
+						{
+							i = MAX_WALL;
+						}
+					}
+				}
+				if (!col)
+				{
+					realZ += (ds * sin(GetRadian(90 - rotate)));
+					realX += (ds * cos(GetRadian(90 - rotate)));
 				}
 				else
 				{
-					if (temp_atk == atk_count)
-					{
-						i = MAX_ATTACK;
-					}
-				}							
-			}
-		}
-	}
-
-	// 플레이어 이동
-	if (ws_state != 0 && camera_set)
-	{
-		switch (ws_state)
-		{
-		case 1: // 앞
-			for (int i = 0; i < MAX_WALL; i++)
-			{
-				if (collision[i].draw)
-				{
-					if (realZ + (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
-						realX + (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
-					{
-						col = GL_TRUE;
-					}
-					if (col)
-					{
-						i = MAX_WALL;
-					}
+					col = GL_FALSE;
 				}
-			}
-			if (!col)
-			{
-				realZ += (ds * sin(GetRadian(90 - rotate)));
-				realX += (ds * cos(GetRadian(90 - rotate)));
-			}
-			else 
-			{
-				col = GL_FALSE;
-			}
-			break;
-		case 2: // 뒤
-			for (int i = 0; i < MAX_WALL; i++)
-			{
-				if (collision[i].draw)
+				break;
+			case 2: // 뒤
+				for (int i = 0; i < MAX_WALL; i++)
 				{
-					if (realZ - (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
-						realX - (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
+					if (collision[i].draw)
 					{
-						col = GL_TRUE;
-					}
-					if (col)
-					{
-						i = MAX_WALL;
-					}
-				}
-			}
-			if (!col)
-			{
-				realZ -= (ds * sin(GetRadian(90 - rotate)));
-				realX -= (ds * cos(GetRadian(90 - rotate)));
-				col = GL_FALSE;
-			}
-			else
-			{
-				col = GL_FALSE;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
-	if (ad_state != 0 && camera_set)
-	{
-		switch (ad_state)
-		{
-		case 1: // 좌
-			for (int i = 0; i < MAX_WALL; i++)
-			{
-				if (collision[i].draw)
-				{
-					if (realZ - (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
-						realX - (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
-					{
-						col = GL_TRUE;
-					}
-					if (col)
-					{
-						i = MAX_WALL;
-					}
-				}
-			}
-			if (!col)
-			{
-				realZ -= (ds * sin(GetRadian(-rotate)));
-				realX -= (ds * cos(GetRadian(-rotate)));
-				col = GL_FALSE;
-			}
-			else
-			{
-				col = GL_FALSE;
-			}
-			break;
-		case 2: // 우
-			for (int i = 0; i < MAX_WALL; i++)
-			{
-				if (collision[i].draw)
-				{
-					if (realZ + (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
-						realX + (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
-					{
-						col = GL_TRUE;
-					}
-					if (col)
-					{
-						i = MAX_WALL;
-					}
-				}
-			}
-			if (!col)
-			{
-				realZ += (ds * sin(GetRadian(-rotate)));
-				realX += (ds * cos(GetRadian(-rotate)));
-				col = GL_FALSE;
-			}
-			else
-			{
-				col = GL_FALSE;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-	
-	if (rotate_state != 0)
-	{
-		switch (rotate_state)
-		{
-		case 1:
-			rotate -= 3.f;
-			break;
-		case 2:
-			rotate += 3.f;
-			break;
-		default:
-			break;
-		}		
-	}
-
-	// 아이템 충돌 검사
-	if (camera_set)
-	{
-		for (int i = 0; i < MAX_ITEM; i++)
-		{
-			if (item[i].draw)
-			{
-				distance = pow((realZ - item[i].posX), 2) + pow((realX - item[i].posZ), 2);
-				if (distance <= 1)
-				{
-					item[i].draw = GL_FALSE;
-					switch (item[i].type)
-					{
-					case 1:
-						if (i < 2)
+						if (realZ - (ds * sin(GetRadian(90 - rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(90 - rotate))) < collision[i].top_z + realbody &&
+							realX - (ds * cos(GetRadian(90 - rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(90 - rotate))) < collision[i].right_x + realbody)
 						{
-							collision[54].draw = GL_FALSE;
+							if (i = MAX_WALL - 1)
+							{
+								life = -1;
+							}
+							col = GL_TRUE;
 						}
-						else
+						if (col)
 						{
-							collision[55].draw = GL_FALSE;
+							i = MAX_WALL;
 						}
-						break;
-					case 2:
-						life += 1;
-						break;
-					case 3:
-						power += 1;
-						break;					
 					}
-					i = MAX_ITEM;
+				}
+				if (!col)
+				{
+					realZ -= (ds * sin(GetRadian(90 - rotate)));
+					realX -= (ds * cos(GetRadian(90 - rotate)));
+					col = GL_FALSE;
+				}
+				else
+				{
+					col = GL_FALSE;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+
+		if (ad_state != 0 && camera_set)
+		{
+			switch (ad_state)
+			{
+			case 1: // 좌
+				for (int i = 0; i < MAX_WALL; i++)
+				{
+					if (collision[i].draw)
+					{
+						if (realZ - (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ - (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
+							realX - (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX - (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
+						{
+							if (i = MAX_WALL - 1)
+							{
+								life = -1;
+							}
+							col = GL_TRUE;
+						}
+						if (col)
+						{
+							i = MAX_WALL;
+						}
+					}
+				}
+				if (!col)
+				{
+					realZ -= (ds * sin(GetRadian(-rotate)));
+					realX -= (ds * cos(GetRadian(-rotate)));
+					col = GL_FALSE;
+				}
+				else
+				{
+					col = GL_FALSE;
+				}
+				break;
+			case 2: // 우
+				for (int i = 0; i < MAX_WALL; i++)
+				{
+					if (collision[i].draw)
+					{
+						if (realZ + (ds * sin(GetRadian(-rotate))) > collision[i].bottom_z - realbody && realZ + (ds * sin(GetRadian(-rotate))) < collision[i].top_z + realbody &&
+							realX + (ds * cos(GetRadian(-rotate))) > collision[i].left_x - realbody && realX + (ds * cos(GetRadian(-rotate))) < collision[i].right_x + realbody)
+						{
+							if (i = MAX_WALL - 1)
+							{
+								life = -1;
+							}
+							col = GL_TRUE;
+						}
+						if (col)
+						{
+							i = MAX_WALL;
+						}
+					}
+				}
+				if (!col)
+				{
+					realZ += (ds * sin(GetRadian(-rotate)));
+					realX += (ds * cos(GetRadian(-rotate)));
+					col = GL_FALSE;
+				}
+				else
+				{
+					col = GL_FALSE;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+
+		if (rotate_state != 0)
+		{
+			switch (rotate_state)
+			{
+			case 1:
+				rotate -= 3.f;
+				break;
+			case 2:
+				rotate += 3.f;
+				break;
+			default:
+				break;
+			}
+		}
+
+		// 아이템 충돌 검사
+		if (camera_set)
+		{
+			for (int i = 0; i < MAX_ITEM; i++)
+			{
+				if (item[i].draw)
+				{
+					distance = pow((realZ - item[i].posX), 2) + pow((realX - item[i].posZ), 2);
+					if (distance <= 1)
+					{
+						item[i].draw = GL_FALSE;
+						switch (item[i].type)
+						{
+						case 1:
+							if (i < 2)
+							{
+								collision[54].draw = GL_FALSE;
+							}
+							else
+							{
+								goal_r = 1.f;
+								goal_g = 0.8f;
+								goal_b = 0.f;
+							}
+							break;
+						case 2:
+							life += 1;
+							break;
+						case 3:
+							power += 1;
+							break;
+						}
+						i = MAX_ITEM;
+					}
 				}
 			}
 		}
-	}
 
-	// 좀비 움직임
-	for (int i = 0; i < MAX_ZOMBIE; i++)
-	{
-		if (zombie[i].draw)
+		// 좀비 움직임
+		for (int i = 0; i < MAX_ZOMBIE; i++)
 		{
-			switch (zombie[i].concept_state)
+			if (zombie[i].draw)
 			{
-			case 1: // 정지
-				break;
-			case 2: // 배회
-				switch (zombie[i].state)
+				switch (zombie[i].concept_state)
 				{
-				case 1:
-					zombie[i].posZ -= zombie[i].ds;
-					zombie[i].count += 1;
-					if (zombie[i].count >= MAX_ZOMBIEMOVE)
-					{
-						zombie[i].state = 3;
-						zombie[i].state_rotation = 0.f;
-						zombie[i].count = 0;
-					}
+				case 1: // 정지
 					break;
-				case 2:
-					zombie[i].posX -= zombie[i].ds;
-					zombie[i].count += 1;
-					if (zombie[i].count >= MAX_ZOMBIEMOVE)
-					{
-						zombie[i].state = 4;
-						zombie[i].state_rotation = 90.f;
-						zombie[i].count = 0;
-					}
-					break;
-				case 3:
-					zombie[i].posZ += zombie[i].ds;
-					zombie[i].count += 1;
-					if (zombie[i].count >= MAX_ZOMBIEMOVE)
-					{
-						zombie[i].state = 1;
-						zombie[i].state_rotation = 180.f;
-						zombie[i].count = 0;
-					}
-					break;
-				case 4:
-					zombie[i].posX += zombie[i].ds;
-					zombie[i].count += 1;
-					if (zombie[i].count >= MAX_ZOMBIEMOVE)
-					{
-						zombie[i].state = 2;
-						zombie[i].state_rotation = -90.f;
-						zombie[i].count = 0;
-					}
-					break;
-				}
-				break;
-			case 3: // 추적
-				if (pow((realZ - zombie[i].posX), 2) > pow((realX - zombie[i].posZ), 2) && realZ > zombie[i].posX)
-				{
-					zombie[i].state = 4;
-					zombie[i].state_rotation = 90.f;
-				}
-				else if (pow((realZ - zombie[i].posX), 2) > pow((realX - zombie[i].posZ), 2) && realZ < zombie[i].posX)
-				{
-					zombie[i].state = 2;
-					zombie[i].state_rotation = -90.f;
-				}
-				else if (pow((realZ - zombie[i].posX), 2) < pow((realX - zombie[i].posZ), 2) && realX > zombie[i].posZ)
-				{
-					zombie[i].state = 3;
-					zombie[i].state_rotation = 0.f;
-				}
-				else if (pow((realZ - zombie[i].posX), 2) < pow((realX - zombie[i].posZ), 2) && realX < zombie[i].posZ)
-				{
-					zombie[i].state = 1;
-					zombie[i].state_rotation = 180.f;
-				}
-
-				if (realZ > zombie[i].posX + zombie[i].ds)
-				{
-					zombie[i].posX += zombie[i].ds;
-				}
-				else if (realZ < zombie[i].posX - zombie[i].ds)
-				{
-					zombie[i].posX -= zombie[i].ds;
-				}
-
-				if (realX > zombie[i].posZ + zombie[i].ds)
-				{
-					zombie[i].posZ += zombie[i].ds;
-				}
-				else if (realX < zombie[i].posZ - zombie[i].ds)
-				{
-					zombie[i].posZ -= zombie[i].ds;
-				}
-				break;
-			case 4: // 초기 위치로 복귀
-				distance = pow((zombieset[i].posX - zombie[i].posX), 2) + pow((zombieset[i].posZ - zombie[i].posZ), 2);
-				if (distance <= 1)
-				{
-					zombie[i].posX = zombieset[i].posX;
-					zombie[i].posZ = zombieset[i].posZ;
-					zombie[i].concept_state = zombieset[i].concept_state;
-					zombie[i].state = zombieset[i].state;
+				case 2: // 배회
 					switch (zombie[i].state)
 					{
 					case 1:
-						zombie[i].state_rotation = 180.f;
+						zombie[i].posZ -= zombie[i].ds;
+						zombie[i].count += 1;
+						if (zombie[i].count >= MAX_ZOMBIEMOVE)
+						{
+							zombie[i].state = 3;
+							zombie[i].state_rotation = 0.f;
+							zombie[i].count = 0;
+						}
 						break;
 					case 2:
-						zombie[i].state_rotation = -90.f;
+						zombie[i].posX -= zombie[i].ds;
+						zombie[i].count += 1;
+						if (zombie[i].count >= MAX_ZOMBIEMOVE)
+						{
+							zombie[i].state = 4;
+							zombie[i].state_rotation = 90.f;
+							zombie[i].count = 0;
+						}
 						break;
 					case 3:
-						zombie[i].state_rotation = 0.f;
+						zombie[i].posZ += zombie[i].ds;
+						zombie[i].count += 1;
+						if (zombie[i].count >= MAX_ZOMBIEMOVE)
+						{
+							zombie[i].state = 1;
+							zombie[i].state_rotation = 180.f;
+							zombie[i].count = 0;
+						}
 						break;
 					case 4:
-						zombie[i].state_rotation = 90.f;
+						zombie[i].posX += zombie[i].ds;
+						zombie[i].count += 1;
+						if (zombie[i].count >= MAX_ZOMBIEMOVE)
+						{
+							zombie[i].state = 2;
+							zombie[i].state_rotation = -90.f;
+							zombie[i].count = 0;
+						}
 						break;
 					}
-				}
-				else
-				{
-					if (pow((zombieset[i].posX - zombie[i].posX), 2) > pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posX > zombie[i].posX)
+					break;
+				case 3: // 추적
+					if (pow((realZ - zombie[i].posX), 2) > pow((realX - zombie[i].posZ), 2) && realZ > zombie[i].posX)
 					{
 						zombie[i].state = 4;
 						zombie[i].state_rotation = 90.f;
 					}
-					else if (pow((zombieset[i].posX - zombie[i].posX), 2) > pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posX < zombie[i].posX)
+					else if (pow((realZ - zombie[i].posX), 2) > pow((realX - zombie[i].posZ), 2) && realZ < zombie[i].posX)
 					{
 						zombie[i].state = 2;
 						zombie[i].state_rotation = -90.f;
 					}
-					else if (pow((zombieset[i].posX - zombie[i].posX), 2) < pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posZ > zombie[i].posZ)
+					else if (pow((realZ - zombie[i].posX), 2) < pow((realX - zombie[i].posZ), 2) && realX > zombie[i].posZ)
 					{
 						zombie[i].state = 3;
 						zombie[i].state_rotation = 0.f;
 					}
-					else if (pow((zombieset[i].posX - zombie[i].posX), 2) < pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posZ < zombie[i].posZ)
+					else if (pow((realZ - zombie[i].posX), 2) < pow((realX - zombie[i].posZ), 2) && realX < zombie[i].posZ)
 					{
 						zombie[i].state = 1;
 						zombie[i].state_rotation = 180.f;
 					}
 
-					if (zombieset[i].posX > zombie[i].posX + zombie[i].ds)
+					if (realZ > zombie[i].posX + zombie[i].ds)
 					{
 						zombie[i].posX += zombie[i].ds;
 					}
-					else if (zombieset[i].posX < zombie[i].posX - zombie[i].ds)
+					else if (realZ < zombie[i].posX - zombie[i].ds)
 					{
 						zombie[i].posX -= zombie[i].ds;
 					}
 
-					if (zombieset[i].posZ > zombie[i].posZ + zombie[i].ds)
+					if (realX > zombie[i].posZ + zombie[i].ds)
 					{
 						zombie[i].posZ += zombie[i].ds;
 					}
-					else if (zombieset[i].posZ < zombie[i].posZ - zombie[i].ds)
+					else if (realX < zombie[i].posZ - zombie[i].ds)
 					{
 						zombie[i].posZ -= zombie[i].ds;
 					}
+					break;
+				case 4: // 초기 위치로 복귀
+					distance = pow((zombieset[i].posX - zombie[i].posX), 2) + pow((zombieset[i].posZ - zombie[i].posZ), 2);
+					if (distance <= 1)
+					{
+						zombie[i].posX = zombieset[i].posX;
+						zombie[i].posZ = zombieset[i].posZ;
+						zombie[i].concept_state = zombieset[i].concept_state;
+						zombie[i].state = zombieset[i].state;
+						switch (zombie[i].state)
+						{
+						case 1:
+							zombie[i].state_rotation = 180.f;
+							break;
+						case 2:
+							zombie[i].state_rotation = -90.f;
+							break;
+						case 3:
+							zombie[i].state_rotation = 0.f;
+							break;
+						case 4:
+							zombie[i].state_rotation = 90.f;
+							break;
+						}
+					}
+					else
+					{
+						if (pow((zombieset[i].posX - zombie[i].posX), 2) > pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posX > zombie[i].posX)
+						{
+							zombie[i].state = 4;
+							zombie[i].state_rotation = 90.f;
+						}
+						else if (pow((zombieset[i].posX - zombie[i].posX), 2) > pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posX < zombie[i].posX)
+						{
+							zombie[i].state = 2;
+							zombie[i].state_rotation = -90.f;
+						}
+						else if (pow((zombieset[i].posX - zombie[i].posX), 2) < pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posZ > zombie[i].posZ)
+						{
+							zombie[i].state = 3;
+							zombie[i].state_rotation = 0.f;
+						}
+						else if (pow((zombieset[i].posX - zombie[i].posX), 2) < pow((zombieset[i].posZ - zombie[i].posZ), 2) && zombieset[i].posZ < zombie[i].posZ)
+						{
+							zombie[i].state = 1;
+							zombie[i].state_rotation = 180.f;
+						}
+
+						if (zombieset[i].posX > zombie[i].posX + zombie[i].ds)
+						{
+							zombie[i].posX += zombie[i].ds;
+						}
+						else if (zombieset[i].posX < zombie[i].posX - zombie[i].ds)
+						{
+							zombie[i].posX -= zombie[i].ds;
+						}
+
+						if (zombieset[i].posZ > zombie[i].posZ + zombie[i].ds)
+						{
+							zombie[i].posZ += zombie[i].ds;
+						}
+						else if (zombieset[i].posZ < zombie[i].posZ - zombie[i].ds)
+						{
+							zombie[i].posZ -= zombie[i].ds;
+						}
+					}
+					break;
 				}
-				break;
-			}
 
-			// 팔다리 회전애니메이션
-			zombie[i].mr += zombie[i].dmr;
-			if (zombie[i].mr >= 45.f || zombie[i].mr <= -45.f) {
-				zombie[i].dmr *= -1.f;
-			}
+				// 팔다리 회전애니메이션
+				zombie[i].mr += zombie[i].dmr;
+				if (zombie[i].mr >= 45.f || zombie[i].mr <= -45.f) {
+					zombie[i].dmr *= -1.f;
+				}
 
-			// 유저와의 거리 측정
-			distance = pow((realZ - zombie[i].posX), 2) + pow((realX - zombie[i].posZ), 2);
-			if (distance <= MAX_DISTANCE && zombie[i].concept_state != 3)
-			{
-				zombie[i].concept_state = 3;
-			}
-			else if (distance > MAX_DISTANCE && zombie[i].concept_state == 3)
-			{
-				zombie[i].concept_state = 4;
+				// 유저와의 거리 측정
+				distance = pow((realZ - zombie[i].posX), 2) + pow((realX - zombie[i].posZ), 2);
+				if (distance <= MAX_DISTANCE && zombie[i].concept_state != 3)
+				{
+					zombie[i].concept_state = 3;
+				}
+				else if (distance > MAX_DISTANCE && zombie[i].concept_state == 3)
+				{
+					zombie[i].concept_state = 4;
+				}
+
+				if (distance <= 1 && gaurd <= 0)
+				{
+					gaurd = 50;
+					life--;
+				}
 			}
 		}
+		gaurd--;
 	}
+	else
+	{
+		// 게임 오버 및 클리어시
+		rotate = 0.f;
+		camera_set = GL_FALSE;
+		col = GL_FALSE; // 충돌 여부판단
+		ws_state = 0;
+		ad_state = 0;
+		rotate_state = 0;
+		atk_count = 0;
+		temp_atk = 0;
+		life = LIFE;
+		power = POWER;
+		gaurd = 0;
+		firstMouseX = 0;
+		right_button = -1;
+		goal_r = goal_g = goal_b = 0.f;		
 
+		// 아이템 초기화
+		srand((unsigned int)time(NULL));
+		GLint temp1 = rand() % 2;
+		GLint temp2 = rand() % 7 + 2;
+		for (int i = 0; i < MAX_ITEM; i++)
+		{
+			if (i == temp1 || i == temp2)
+			{
+				item[i].draw = GL_TRUE;
+			}
+			else if(i<9)
+			{
+				item[i].draw = GL_FALSE;
+			}
+			else
+			{
+				item[i].draw = GL_TRUE;
+			}
+		}
+
+		// 벽 초기화
+		for (int i = 0; i < MAX_WALL; i++)
+		{
+			collision[i].draw = GL_TRUE;
+		}
+
+		// 좀비 초기화
+		for (int i = 0; i < MAX_ZOMBIE; i++)
+		{
+			if (i < 10)
+			{
+				zombie[i].life = 2;
+			}
+			else
+			{
+				zombie[i].life = 4;
+			}
+			zombie[i].ds = 0.05f;
+			zombie[i].mr = (GLfloat)(rand() % 16) * 3.f;
+			zombie[i].dmr = 3.f;
+			zombie[i].concept_state = zombieset[i].concept_state;
+			zombie[i].count = 0;
+			zombie[i].posX = zombieset[i].posX;
+			zombie[i].posY = zombieset[i].posY;
+			zombie[i].posZ = zombieset[i].posZ;
+			zombie[i].state = zombieset[i].state;
+			zombie[i].draw = GL_TRUE;
+			switch (zombie[i].state)
+			{
+			case 1:
+				zombie[i].state_rotation = 180.f;
+				break;
+			case 2:
+				zombie[i].state_rotation = -90.f;
+				break;
+			case 3:
+				zombie[i].state_rotation = 0.f;
+				break;
+			case 4:
+				zombie[i].state_rotation = 90.f;
+				break;
+			}
+		}
+
+		realX = posX;
+		realY = posY;
+		realZ = posZ;
+	}
+	
 	glutPostRedisplay();
 	glutTimerFunc(50, Timer, 1);
 }
@@ -1908,10 +2024,12 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	// 키 셋
 	printf("공격은 한번에 최대 5회\n");
 	printf("플레이어 시점에서만 위치이동 가능\n");
+	printf("게임 클리어 및 게임 오버시 자동 재시작\n");
 	printf("wasd/WASD - 앞뒤좌우\n");
 	printf("q/Q - 좌측 회전\te/E - 우측 회전\n");
 	printf("j/J(마우스 좌클릭) - 공격\n");
 	printf("t/T - 시점 변화(현재 위치 상공뷰)\n");
+	printf("p/P - 재시작\tg/G - 종료\n");
 
 	srand((unsigned int)time(NULL));
 	// 화면 사이즈 조절
@@ -1920,7 +2038,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 
 	// 키 박스 설정
 	GLint temp1 = rand() % 2;
-	GLint temp2 = rand() % 8 + 2;
+	GLint temp2 = rand() % 7 + 2;
 	for (int i = 0; i < MAX_ITEM; i++)
 	{
 		if (i == temp1 || i == temp2)
