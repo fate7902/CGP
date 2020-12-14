@@ -19,6 +19,7 @@
 #define MAX_ZOMBIE 34
 #define MAX_ZOMBIEMOVE 100
 #define MAX_DISTANCE 16
+#define MAX_ATTACK 5
 
 GLuint vertexShader;
 GLuint fragmentShader;
@@ -29,13 +30,22 @@ GLfloat g_window_w, g_window_h;
 GLchar errorLog[512];
 GLint width, height;
 GLuint s_program;
-GLuint vao[4], vbo[2];
+GLuint vao[5], vbo[2];
 
 // 사용할 구조체 여기에 선언해주세요
 struct Collision
 {
 	GLfloat left_x, right_x;
 	GLfloat bottom_z, top_z;
+};
+
+struct Sword
+{
+	GLfloat rotate;
+	GLfloat posX, posZ;
+	GLuint state; // 0 - 프리 1 - 발사중
+	GLuint temp_atk;
+	GLfloat dx, dz;
 };
 
 struct Zombieset
@@ -57,6 +67,7 @@ struct Zombie
 	GLint count; // 위치변화 횟수
 };
 
+struct Sword sword[MAX_ATTACK] = { 0, };
 struct Collision collision[MAX_WALL] =
 { 
 	{5.f,6.f,0.f,32.f},{9.f,26.f,0.f,1.f},{25.f,26.f,0.f,32.f},{6.f,22.f,16.f,17.f},
@@ -100,12 +111,21 @@ GLboolean camera_set = GL_FALSE;
 GLboolean col = GL_FALSE; // 충돌 여부판단
 GLuint ws_state = 0, ad_state = 0; // 0 - 정지 1 - 앞/좌 2 - 뒤/우
 GLuint rotate_state = 0; // 0 - 정지 1 - 좌 2 - 우
+GLuint atk_count = 0, temp_atk = 0;
 
 // 여기에 도형 좌표 해주세요
 GLfloat line[6][3] = {
 	{-65.0f,0.0f,0.0f},{65.0f,0.0f,0.0f},
 	{0.0f,65.0f,0.0f},{0.0f,-65.0f,0.0f},
 	{0.0f,0.0f,-65.0f},{0.0f,0.0f,65.0f}
+};
+GLfloat tp[18][3] = {
+	{0.f,0.25f,0.f},{-0.25f,-0.25f,-0.25f},{-0.25f,-0.25f,0.25f},
+	{0.f,0.25f,0.f},{-0.25f,-0.25f,0.25f},{0.25f,-0.25f,0.25f},
+	{0.f,0.25f,0.f},{0.25f,-0.25f,0.25f},{0.25f,-0.25f,-0.25f},
+	{0.f,0.25f,0.f},{0.25f,-0.25f,-0.25},{-0.25f,-0.25f,-0.25f},
+	{-0.25f,-0.25f,0.25f},{-0.25f,-0.25f,-0.25f},{0.25f,-0.25f,0.25f},
+	{0.25f,-0.25f,0.25f},{-0.25f,-0.25f,-0.25f},{0.25f,-0.25f,-0.25f}
 };
 GLfloat cube[36][3] = {
    {0.0f,0.0f,0.0f}, // triangle 1 : begin
@@ -155,9 +175,9 @@ GLfloat zombie_body[36][3] = {
 	{-0.25,1.0,-0.25},{-0.25,0.0,-0.25},{-0.25,0.0,0.25},
 	{-0.25,1.0,-0.25},{-0.25,0.0,0.25},{-0.25,1.0,0.25}, // 왼쪽면
 	{-0.25,1.0,-0.25},{-0.25,1.0,0.25},{0.25,1.0,0.25},
-	{-0.25,1.0, -0.25},{0.25,1.0,0.25},{0.25,1.0,-0.25}, // 윗면
-	{-0.25,0.0,0.25},{-0.25,0.0,-0.25},{0.25,0.0,-0.25},
-	{0.25,0.0,-0.25},{-0.25,0.0,-0.25},{0.25,0.0,-0.25} // 아랫면
+	{-0.25,1.0,-0.25},{0.25,1.0,0.25},{0.25,1.0,-0.25}, // 윗면
+	{-0.25,0.0,0.25},{-0.25,0.0,-0.25},{0.25,0.0,0.25},
+	{0.25,0.0,0.25},{-0.25,0.0,-0.25},{0.25,0.0,-0.25} // 아랫면
 };
 
 // 추가 함수 여기에 선언해주세요
@@ -236,7 +256,7 @@ void make_fragmentShaders()
 
 void InitBuffer()
 {
-	glGenVertexArrays(4, vao);
+	glGenVertexArrays(5, vao);
 
 	// x,y,z 축	
 	glBindVertexArray(vao[0]);
@@ -269,6 +289,14 @@ void InitBuffer()
 	glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(GLfloat), cube, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
+
+	// 검관련
+	glBindVertexArray(vao[4]);
+	glGenBuffers(2, vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, 54 * sizeof(GLfloat), tp, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
 }
 
 void InitShader()
@@ -293,7 +321,9 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	//--- 변경된 배경색 설정
 	glClearColor(rColor, gColor, bColor, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glFrontFace(GL_CCW);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	glUseProgram(s_program);
 
@@ -1033,6 +1063,8 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glm::mat4 TDO = glm::mat4(1.0f);
 	glm::mat4 RS = glm::mat4(1.0f);
 	glm::mat4 Rx = glm::mat4(1.0f);
+	glm::mat4 RR1 = glm::mat4(1.0f);
+	glm::mat4 RR2 = glm::mat4(1.0f);
 	glm::mat4 TM = glm::mat4(1.0f);
 	glm::mat4 TJy = glm::mat4(1.0f);
 	for (int i = 0; i < MAX_ZOMBIE; i++)
@@ -1171,6 +1203,78 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
 
+	// 검 그리기
+	if (atk_count != 0)
+	{
+		for (int i = 0; i < MAX_ATTACK; i++)
+		{
+			if (sword[i].state == 1)
+			{
+				colorLocation = glGetUniformLocation(s_program, "color");
+				glUniform3f(colorLocation, 0.0, 0.0, 0.0);
+				TT = glm::mat4(1.0f);
+				TS = glm::mat4(1.0f);
+				Ty1 = glm::mat4(1.0f);
+				Ty2 = glm::mat4(1.0f);
+				Ty = glm::mat4(1.0f);
+				TM = glm::mat4(1.0f);
+				RR1 = glm::mat4(1.0f);
+				RR2 = glm::mat4(1.0f);
+				Ty1 = glm::translate(Ty1, glm::vec3(-2.0f, 0.0f, 0.0f));
+				Ty2 = glm::translate(Ty2, glm::vec3(2.0f, 0.0f, 0.0f));
+				RR1 = glm::rotate(RR1, glm::radians(-90.f), glm::vec3(0.0f, 0.0f, 1.0f));
+				RR2 = glm::rotate(RR2, glm::radians(sword[i].rotate), glm::vec3(0.0f, 1.0f, 0.0f));
+				TM = glm::translate(TM, glm::vec3(sword[i].posX, 1.5f, sword[i].posZ));
+				Ty = glm::translate(Ty, glm::vec3(0.0f, 1.6f, 0.0f));
+				TS = glm::scale(TS, glm::vec3(0.2f, 0.2f, 0.2f));
+				TT = TM * Ty2 * RR2 * Ty1 * RR1 * Ty * TS;
+				modelLocation = glGetUniformLocation(s_program, "modelTransform");
+				glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+				glBindVertexArray(vao[2]);
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+
+				colorLocation = glGetUniformLocation(s_program, "color");
+				glUniform3f(colorLocation, 0.0, 0.0, 0.0);
+				TT = glm::mat4(1.0f);
+				TS = glm::mat4(1.0f);
+				Ty = glm::mat4(1.0f);
+				Ty = glm::translate(Ty, glm::vec3(0.0f, 1.8f, 0.0f));
+				TS = glm::scale(TS, glm::vec3(0.2f, 0.1f, 0.6f));
+				TT = TM * Ty2 * RR2 * Ty1 * RR1 * Ty * TS;
+				modelLocation = glGetUniformLocation(s_program, "modelTransform");
+				glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+				glBindVertexArray(vao[2]);
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+
+				colorLocation = glGetUniformLocation(s_program, "color");
+				glUniform3f(colorLocation, 0.6, 0.6, 0.6);
+				TT = glm::mat4(1.0f);
+				TS = glm::mat4(1.0f);
+				Ty = glm::mat4(1.0f);
+				Ty = glm::translate(Ty, glm::vec3(0.0f, 1.9f, 0.0f));
+				TS = glm::scale(TS, glm::vec3(0.1f, 0.4f, 0.3f));
+				TT = TM * Ty2 * RR2 * Ty1 * RR1 * Ty * TS;
+				modelLocation = glGetUniformLocation(s_program, "modelTransform");
+				glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+				glBindVertexArray(vao[2]);
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+
+				colorLocation = glGetUniformLocation(s_program, "color");
+				glUniform3f(colorLocation, 0.6, 0.6, 0.6);
+				TT = glm::mat4(1.0f);
+				TS = glm::mat4(1.0f);
+				Ty = glm::mat4(1.0f);
+				Ty = glm::translate(Ty, glm::vec3(0.0f, 2.38f, 0.0f));
+				TS = glm::scale(TS, glm::vec3(0.1f, 0.3f, 0.3f));
+				TT = TM * Ty2 * RR2 * Ty1 * RR1 * Ty * TS;
+				modelLocation = glGetUniformLocation(s_program, "modelTransform");
+				glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TT));
+				glBindVertexArray(vao[4]);
+				glDrawArrays(GL_TRIANGLES, 0, 18);
+			}
+		}
+	}
+
 	glutSwapBuffers(); // 화면에 출력하기
 }
 
@@ -1206,8 +1310,26 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 			camera_set = GL_FALSE; // 상공 시점
 		}
 		break;
-	case 'g':
-	case 'G':
+	case 'j' | 'J':
+		if (atk_count < MAX_ATTACK)
+		{
+			for (int i = 0; i < MAX_ATTACK; i++)
+			{
+				if (sword[i].state == 0)
+				{
+					sword[i].posX = realZ - 2.2f;
+					sword[i].posZ = realX;
+					sword[i].rotate = -rotate;
+					sword[i].state = 1;
+					sword[i].dx = (ds * sin(GetRadian(90 - rotate)));
+					sword[i].dz = -(ds * cos(GetRadian(90 + rotate)));
+					atk_count++;
+					i = MAX_ATTACK;
+				}
+			}
+		}
+		break;
+	case 'g' | 'G':	
 		glutLeaveMainLoop();
 		break;
 	default:
@@ -1238,6 +1360,44 @@ GLvoid KeyUp(unsigned char key, int x, int y) {
 }
 
 GLvoid Timer(int value) {
+	// 공격
+	if (atk_count > 0)
+	{
+		temp_atk = 0;
+		for (int i = 0; i < MAX_ATTACK; i++)
+		{
+			if (sword[i].state == 1)
+			{
+				sword[i].posX += sword[i].dx;
+				sword[i].posZ += sword[i].dz;
+				sword[i].temp_atk++;				
+
+				//충돌 처리 공간
+				if (sword[i].temp_atk > 20)
+				{
+					sword[i] = { 0, };
+					atk_count--;
+				}
+
+				temp_atk++;
+				if (sword[i].state == 0)
+				{
+					if (temp_atk == atk_count + 1)
+					{
+						i = MAX_ATTACK;
+					}
+				}
+				else
+				{
+					if (temp_atk == atk_count)
+					{
+						i = MAX_ATTACK;
+					}
+				}							
+			}
+		}
+	}
+
 	// 플레이어 이동
 	if (ws_state != 0)
 	{
@@ -1537,19 +1697,12 @@ GLvoid Timer(int value) {
 
 		// 팔다리 회전애니메이션
 		zombie[i].mr += zombie[i].dmr;
-		if (zombie[i].mr >= 45.f) {
-			zombie[i].dmr *= -1.f;
-		}
-		else if (zombie[i].mr <= -45.f) {
+		if (zombie[i].mr >= 45.f || zombie[i].mr <= -45.f) {
 			zombie[i].dmr *= -1.f;
 		}
 
 		// 유저와의 거리 측정
 		distance = pow((realZ - zombie[i].posX), 2) + pow((realX - zombie[i].posZ), 2);
-		/*if (i == 1)
-		{
-			printf("realX : %f\trealZ : %f\tzombieX : %f\tzombieZ : %f\tdistance : %f\n", realZ, realX, zombie[i].posX, zombie[i].posZ,distance);			
-		}*/
 		if (distance <= MAX_DISTANCE && zombie[i].concept_state != 3)
 		{
 			zombie[i].concept_state = 3;
@@ -1559,7 +1712,6 @@ GLvoid Timer(int value) {
 			zombie[i].concept_state = 4;
 		}
 	}
-
 
 	glutPostRedisplay();
 	glutTimerFunc(50, Timer, 1);
