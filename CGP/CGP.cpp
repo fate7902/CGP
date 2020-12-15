@@ -2114,7 +2114,7 @@ GLvoid Timer(int value) {
 			{
 				zombie[i].life = 4;
 			}
-			zombie[i].ds = 0.02f;
+			zombie[i].ds = 0.03f;
 			zombie[i].mr = (GLfloat)(rand() % 16) * 3.f;
 			zombie[i].dmr = 3.f;
 			zombie[i].concept_state = zombieset[i].concept_state;
@@ -2195,7 +2195,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 		{
 			zombie[i].life = 4;
 		}
-		zombie[i].ds = 0.05f;
+		zombie[i].ds = 0.03f;
 		zombie[i].mr = (GLfloat)(rand() % 16) * 3.f;
 		zombie[i].dmr = 3.f;
 		zombie[i].concept_state = zombieset[i].concept_state;
