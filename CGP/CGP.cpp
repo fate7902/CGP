@@ -170,6 +170,7 @@ GLfloat firstMouseX = 0; // 최초 마우스 위치
 GLint right_button = -1; // 시점이동 중단용 우클릭
 int dwID; // 배경음악 재생용 변수
 GLboolean musicON_OFF = true; // 배경음악 재생 on off
+GLboolean easy_hard = false;
 
 // 여기에 도형 좌표 해주세요
 GLfloat line[6][3] = {
@@ -1104,22 +1105,21 @@ GLvoid drawScene() //--- 콜백 함수: 그리기 콜백 함수
 	glUniform3f(colorLocation, 0.5, 0.4, 0.4);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
-	/*
 	//roof56
-	CT = glm::mat4(1.0f);
-	MX = glm::mat4(1.0f);
-	CS = glm::mat4(1.0f);
-	CS = glm::scale(CS, glm::vec3(65.0f, 1.0f, 33.0f));
-	MX = glm::translate(MX, glm::vec3(0.0f, 6.0f, 0.0f));
-	CT = MX * CS;
-	modelLocation = glGetUniformLocation(s_program, "modelTransform");
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
-	glBindVertexArray(vao[3]);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	*/
+	if (easy_hard) {
+		CT = glm::mat4(1.0f);
+		MX = glm::mat4(1.0f);
+		CS = glm::mat4(1.0f);
+		CS = glm::scale(CS, glm::vec3(65.0f, 1.0f, 33.0f));
+		MX = glm::translate(MX, glm::vec3(0.0f, 6.0f, 0.0f));
+		CT = MX * CS;
+		modelLocation = glGetUniformLocation(s_program, "modelTransform");
+		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(CT));
+		glBindVertexArray(vao[3]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
 
-	//door1
-	
+	//door1	
 	if (collision[54].draw)
 	{
 		colorLocation = glGetUniformLocation(s_program, "color");
@@ -1509,7 +1509,11 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 			musicON_OFF = true;
 		BgmPlay();
 		break;
-	case 'g' | 'G':	
+	case 'h' | 'H':
+		if (easy_hard == false)
+			easy_hard = true;
+		break;
+	case 'g' | 'G':
 		glutLeaveMainLoop();
 		break;
 	}
@@ -2071,6 +2075,7 @@ GLvoid Timer(int value) {
 		firstMouseX = 0;
 		right_button = -1;
 		goal_r = goal_g = goal_b = 0.f;		
+		easy_hard = false;
 
 		// 아이템 초기화
 		srand((unsigned int)time(NULL));
@@ -2161,6 +2166,7 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	printf("t/T - 시점 변화(현재 위치 상공뷰)\n");
 	printf("p/P - 재시작\tg/G - 종료\n");
 	std::cout << "m/M - 음악 켜기/끄기" << std::endl;
+	std::cout << "h/H - 하드모드(천장이 덮여 상공뷰를 사용금지.)" << std::endl;
 
 	srand((unsigned int)time(NULL));
 	// 화면 사이즈 조절
