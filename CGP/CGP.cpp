@@ -1494,6 +1494,7 @@ GLvoid KeyBoard(unsigned char key, int x, int y)
 					sword[i].dz = -(ds * cos(GetRadian(90 + rotate)));
 					atk_count++;
 					i = MAX_ATTACK;
+					sword[i].sound();
 				}
 			}
 		}
