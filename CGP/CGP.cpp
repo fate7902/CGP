@@ -1682,6 +1682,7 @@ GLvoid Timer(int value) {
 							if (i == MAX_WALL - 2)
 							{
 								life = -1;
+								PlaySound(L"complete.wav", 0, SND_FILENAME | SND_ASYNC);
 							}
 							col = GL_TRUE;
 						}
@@ -1712,6 +1713,7 @@ GLvoid Timer(int value) {
 							if (i == MAX_WALL - 2)
 							{
 								life = -1;
+								PlaySound(L"complete.wav", 0, SND_FILENAME | SND_ASYNC);
 							}
 							col = GL_TRUE;
 						}
@@ -1752,6 +1754,7 @@ GLvoid Timer(int value) {
 							if (i == MAX_WALL - 2)
 							{
 								life = -1;
+								PlaySound(L"complete.wav", 0, SND_FILENAME | SND_ASYNC);
 							}
 							col = GL_TRUE;
 						}
@@ -1783,6 +1786,7 @@ GLvoid Timer(int value) {
 							if (i == MAX_WALL - 2)
 							{
 								life = -1;
+								PlaySound(L"complete.wav", 0, SND_FILENAME | SND_ASYNC);
 							}
 							col = GL_TRUE;
 						}
@@ -2105,7 +2109,7 @@ GLvoid Timer(int value) {
 			{
 				zombie[i].life = 4;
 			}
-			zombie[i].ds = 0.05f;
+			zombie[i].ds = 0.02f;
 			zombie[i].mr = (GLfloat)(rand() % 16) * 3.f;
 			zombie[i].dmr = 3.f;
 			zombie[i].concept_state = zombieset[i].concept_state;

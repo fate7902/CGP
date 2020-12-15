@@ -144,6 +144,7 @@
   </ItemGroup>
   <ItemGroup>
     <Media Include="bgm.mp3" />
+    <Media Include="complete.wav" />
     <Media Include="Item.wav" />
     <Media Include="공격.wav" />
     <Media Include="괴물.wav" />

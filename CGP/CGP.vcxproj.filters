@@ -32,5 +32,8 @@
     <Media Include="Item.wav">
       <Filter>리소스 파일</Filter>
     </Media>
+    <Media Include="complete.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
   </ItemGroup>
 </Project>
